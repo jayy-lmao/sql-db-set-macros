@@ -1,0 +1,11 @@
+[lib]
+proc-macro = true
+
+[package]
+name = "db-set-macros"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+quote = "1.0.37"
+syn = "2.0.85"

@@ -1,0 +1,10 @@
+[package]
+name = "todo"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+db-set-macros = { path = '../../'}
+sqlx = {version = "0.8.2", features=["postgres","runtime-tokio"]}
+tokio = { version = "1.29.1", features = ["full"] }
+
