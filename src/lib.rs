@@ -2,8 +2,25 @@ use proc_macro::TokenStream;
 use quote::quote;
 use syn::{
     meta::ParseNestedMeta, parse::discouraged::AnyDelimiter, parse_macro_input,
-    punctuated::Punctuated, Attribute, Data, DeriveInput, Fields, Ident, Lit, LitStr, Meta, Token,
+    punctuated::Punctuated, Attribute, Data, DeriveInput, Fields, Ident, Lit, LitStr, Meta,
+    PathArguments, Token, Type,
 };
+
+fn get_inner_option_type(ty: &Type) -> Option<&Type> {
+    if let Type::Path(type_path) = ty {
+        // Check if the path is `Option`
+        if type_path.path.segments.last()?.ident == "Option" {
+            if let PathArguments::AngleBracketed(args) = &type_path.path.segments.last()?.arguments
+            {
+                // Return the inner type `T` in `Option<T>`
+                if let Some(syn::GenericArgument::Type(inner_type)) = args.args.first() {
+                    return Some(inner_type);
+                }
+            }
+        }
+    }
+    None
+}
 
 #[proc_macro_derive(DbSet, attributes(unique, dbset, relation, auto, key))]
 pub fn dbset_derive(input: TokenStream) -> TokenStream {
@@ -21,8 +38,13 @@ pub fn dbset_derive(input: TokenStream) -> TokenStream {
         panic!("DbSet can only be derived for structs");
     };
 
+    let mut all_fields = Vec::new();
     let mut unique_fields = Vec::new();
     let mut key_fields = Vec::new();
+    let mut query_builder_struct_fields = Vec::new();
+    let mut query_builder_struct_fields_initial = Vec::new();
+    let mut query_builder_fields = Vec::new();
+    let mut query_builder_methods = Vec::new();
     // let mut builder_fields = Vec::new();
     // let mut builder_methods = Vec::new();
     // let mut insertable_fields = Vec::new();
@@ -37,6 +59,7 @@ pub fn dbset_derive(input: TokenStream) -> TokenStream {
         let is_unique = field.attrs.iter().any(is_unique_attr);
         let is_key = field.attrs.iter().any(is_key_attr);
 
+        all_fields.push((field_name, field_type));
         if is_unique {
             unique_fields.push((field_name, field_type));
         }
@@ -44,8 +67,34 @@ pub fn dbset_derive(input: TokenStream) -> TokenStream {
         if is_key {
             key_fields.push((field_name, field_type));
         }
+        if !is_unique && !is_key {
+            let inner_type = get_inner_option_type(field_type);
+            let method_name = quote::format_ident!("{}_eq", field_name);
+
+            query_builder_struct_fields_initial.push(quote! { #field_name: None });
+            if let Some(inner_type) = inner_type {
+                query_builder_struct_fields.push(quote! { #field_name: Option<#inner_type> });
+                query_builder_fields.push((field_name, inner_type));
+                query_builder_methods.push(quote! {
+                        pub fn #method_name(mut self, value: #inner_type) -> Self {
+                            self.#field_name = Some(value);
+                            self
+                        }
+                });
+            } else {
+                query_builder_struct_fields.push(quote! { #field_name: Option<#field_type> });
+                query_builder_fields.push((field_name, field_type));
+                query_builder_methods.push(quote! {
+                        pub fn #method_name(mut self, value: #field_type) -> Self {
+                            self.#field_name = Some(value);
+                            self
+                        }
+                });
+            }
+        }
 
         field_names.push(field_name);
+        //
         // builder_fields.push(quote! { #field_name: Option<#field_type> });
         // insertable_fields.push(quote! { #field_name: #field_type });
         // insertable_values
@@ -79,6 +128,12 @@ pub fn dbset_derive(input: TokenStream) -> TokenStream {
             .collect::<Vec<_>>()
             .join("_and_");
 
+        let all_fields_str = all_fields
+            .iter()
+            .map(|(field_name, _)| field_name.to_string())
+            .collect::<Vec<_>>()
+            .join(", ");
+
         let all_keys_where_clauses = key_fields
             .iter()
             .enumerate()
@@ -88,7 +143,8 @@ pub fn dbset_derive(input: TokenStream) -> TokenStream {
 
         let method_name = quote::format_ident!("by_{}", all_keys_name);
 
-        let query = format!("SELECT * FROM {table_name} WHERE {all_keys_where_clauses}");
+        let query =
+            format!("SELECT {all_fields_str} FROM {table_name} WHERE {all_keys_where_clauses}");
         let docstring = format!(
             "Get a `{struct_name}` by it's `{all_keys_name_for_docstring}` field.\n\nEquivalent of sqlx's `fetch_one` method."
         );
@@ -123,14 +179,21 @@ pub fn dbset_derive(input: TokenStream) -> TokenStream {
     };
 
     let unique_methods = unique_fields.iter().filter(|(field_name,_)| {
+
         if  let Some((key_field_name,_)) = key_fields.first() {
             has_single_key_field  && key_field_name != field_name
         } else { false }
 
     })
         .map(|(field_name, field_type)| {
+        let all_fields_str = all_fields
+            .iter()
+            .map(|(field_name, _)| field_name.to_string())
+            .collect::<Vec<_>>()
+            .join(", ");
+
         let method_name = quote::format_ident!("by_{}", field_name);
-        let query = format!("SELECT * FROM {table_name} WHERE {field_name} = $1");
+        let query = format!("SELECT {all_fields_str} FROM {table_name} WHERE {field_name} = $1");
         let docstring = format!(
             "Get a `{struct_name}` by it's `{field_name}` field.\n\nEquivalent of sqlx's `fetch_one` method."
         );
@@ -154,7 +217,69 @@ pub fn dbset_derive(input: TokenStream) -> TokenStream {
 
     // // Generate builder struct, insertable struct, and methods
     // let builder_struct_name = quote::format_ident!("{}Builder", struct_name);
+    let query_builder_struct_name = quote::format_ident!("{}QueryBuilder", dbset_name);
+
     // let insertable_struct_name = quote::format_ident!("{}Insertable", struct_name);
+    //
+    //
+    let query_builder_fetch = {
+        let all_query_builder_fields = query_builder_fields
+            .iter()
+            .enumerate()
+            .map(|(index, (field_name, _))| {
+                format!("{} = ${} or ${} = null", field_name, index + 1, index + 1)
+            })
+            .collect::<Vec<_>>()
+            .join(" AND ");
+
+        let all_fields_str = all_fields
+            .iter()
+            .map(|(field_name, _)| field_name.to_string())
+            .collect::<Vec<_>>()
+            .join(", ");
+
+        let query =
+            format!("SELECT {all_fields_str} FROM {table_name} WHERE {all_query_builder_fields}");
+        let query_args = query_builder_fields
+            .iter()
+            .map(|(field_name, _field_type)| {
+                quote! {
+                    self.#field_name,
+                }
+            });
+
+        quote! {
+            pub async fn fetch<'e, E: sqlx::PgExecutor<'e>>(
+                self,
+                executor: E,
+            ) -> Result<Vec<User>, sqlx::Error> {
+                sqlx::query_as!(
+                    #struct_name,
+                    #query,
+                    #(#query_args)*
+                )
+                .fetch_all(executor)
+                .await
+            }
+
+        }
+    };
+    let query_builder_impl = quote! {
+        pub struct #query_builder_struct_name {
+            #(#query_builder_struct_fields),*
+        }
+
+        impl #query_builder_struct_name {
+            pub fn new() -> Self {
+            Self {
+                #(#query_builder_struct_fields_initial),*
+                }
+            }
+            #(#query_builder_methods)*
+            #query_builder_fetch
+        }
+    };
+    println!("HERE:: {}", query_builder_impl);
 
     // let builder_impl = quote! {
     //     pub struct #builder_struct_name {
@@ -198,6 +323,10 @@ pub fn dbset_derive(input: TokenStream) -> TokenStream {
         impl #dbset_name {
             #key_method
             #(#unique_methods)*
+
+            pub fn all() -> #query_builder_struct_name {
+                #query_builder_struct_name::new()
+            }
 
     //     //     pub async fn insert<'e, E: sqlx::PgExecutor<'e>>(
     //     //         &self,
@@ -244,10 +373,9 @@ pub fn dbset_derive(input: TokenStream) -> TokenStream {
         #from_row_impl
         // #builder_impl
         // #insertable_impl
+        #query_builder_impl
         #dbset_impl
     };
-
-    println!("{}", expanded);
 
     TokenStream::from(expanded)
 }

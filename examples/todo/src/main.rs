@@ -4,18 +4,21 @@ use sqlx::postgres::PgPoolOptions;
 #[derive(DbSet)]
 #[dbset(table_name = "users")]
 pub struct User {
-    #[unique]
+    #[key]
     id: String,
     name: String,
+    details: Option<String>,
+    #[unique]
+    email: String,
 }
 
-#[derive(DbSet)]
-#[dbset(table_name = "todos")]
-pub struct Todo {
-    #[unique]
-    id: String,
-    user_id: String,
-}
+// #[derive(DbSet)]
+// #[dbset(table_name = "todos")]
+// pub struct Todo {
+//     #[unique]
+//     id: String,
+//     user_id: String,
+// }
 
 #[tokio::main]
 async fn main() {
@@ -28,5 +31,5 @@ async fn main() {
     let user = UserDbSet::by_id(&pool, "user-1".to_string())
         .await
         .expect("Could not query user");
-    println!("Hello {}!", user.name)
+    // println!("Hello {}!", user.name)
 }
