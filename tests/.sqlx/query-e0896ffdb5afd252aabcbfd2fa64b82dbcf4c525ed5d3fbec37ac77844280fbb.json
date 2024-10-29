@@ -1,34 +1,38 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT * FROM users WHERE email = $1",
+  "query": "SELECT id,name,email,details FROM users LIMIT 1;",
   "describe": {
     "columns": [
       {
         "ordinal": 0,
-        "name": "name",
+        "name": "id",
         "type_info": "Text"
       },
       {
         "ordinal": 1,
-        "name": "id",
+        "name": "name",
         "type_info": "Text"
       },
       {
         "ordinal": 2,
         "name": "email",
         "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "details",
+        "type_info": "Varchar"
       }
     ],
     "parameters": {
-      "Left": [
-        "Text"
-      ]
+      "Left": []
     },
     "nullable": [
       false,
       false,
-      false
+      false,
+      true
     ]
   },
-  "hash": "f3f58600e971f1be6cbe206bba24f77769f54c6230e28f5b3dc719b869d9cb3f"
+  "hash": "e0896ffdb5afd252aabcbfd2fa64b82dbcf4c525ed5d3fbec37ac77844280fbb"
 }

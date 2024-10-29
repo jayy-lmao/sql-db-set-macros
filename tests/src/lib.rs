@@ -1,5 +1,5 @@
 use db_set_macros::DbSet;
-use sqlx::postgres::PgPoolOptions;
+use sqlx::{postgres::PgPoolOptions, QueryBuilder};
 
 #[derive(DbSet)]
 #[dbset(table_name = "users")]
@@ -7,6 +7,7 @@ pub struct User {
     #[key]
     id: String,
     name: String,
+    details: Option<String>,
     #[unique]
     email: String,
 }
@@ -27,7 +28,7 @@ async fn simple_query() -> Result<(), String> {
         .expect("Could not connect to postgres");
 
     sqlx::raw_sql(
-        "create table users (name text not null, id text not null, email text not null);",
+        "create table users (name text not null, id text not null, email text not null, details text);",
     )
     .execute(&pool)
     .await
@@ -43,9 +44,32 @@ async fn simple_query() -> Result<(), String> {
         .expect("Could not query user");
 
     // Still allowed to make query_as
-    sqlx::query_as!(User, "SELECT * FROM users LIMIT 1;")
+    sqlx::query_as!(User, "SELECT id,name,email,details FROM users LIMIT 1;")
         .fetch_one(&pool)
         .await
         .expect("Could not fetch one");
+
+    sqlx::raw_sql("insert into users (name, id, email) values ('bob', 'user-2', 'bobo@bob.com');")
+        .execute(&pool)
+        .await
+        .expect("Could not initialise db");
+
+    // let query = UserDbSetQueryBuilder::new().name_eq("bob".to_string());
+    // let users = query.fetch(&pool).await.expect("could not fetch users");
+    let users = UserDbSet::all()
+        .name_eq("bob".to_string())
+        .fetch(&pool)
+        .await
+        .expect("could not fetch users");
+
+    assert_eq!(users.len(), 2);
+
+    let users = UserDbSet::all()
+        .name_eq("bob".to_string())
+        .fetch(&pool)
+        .await
+        .expect("could not fetch users");
+
+    assert_eq!(users.len(), 2);
     Ok(())
 }
