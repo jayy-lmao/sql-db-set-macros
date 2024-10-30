@@ -60,8 +60,6 @@ pub fn get_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream {
                 self,
                 executor: E,
             ) -> Result<Vec<User>, sqlx::Error> {
-                println!("self: {:?}", self);
-                println!("str args: {:?}", stringify!(#query_args_string));
 
                 sqlx::query_as!(
                     #struct_name,
@@ -74,7 +72,6 @@ pub fn get_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream {
 
 
         };
-        println!("Fetch Res: {}", res);
         res
     };
 
