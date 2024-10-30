@@ -7,7 +7,7 @@ pub fn get_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream {
     let struct_name = utils::get_struct_name(input);
     let dbset_name = utils::get_dbset_name(input);
     let table_name = utils::get_table_name(input);
-    let query_builder_struct_name = quote::format_ident!("{}ManyQueryBuilder", dbset_name);
+    let query_builder_struct_name = utils::get_many_query_builder_struct_name(input);
     let query_builder_fields = utils::get_query_builder_fields(input);
     let query_builder_struct_fields = utils::get_query_builder_struct_fields(input);
     let query_builder_struct_fields_initial = utils::get_query_builder_struct_fields_initial(input);

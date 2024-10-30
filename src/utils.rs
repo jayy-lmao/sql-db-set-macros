@@ -175,7 +175,7 @@ pub fn get_all_fields(input: &DeriveInput) -> Vec<(&Ident, &Type)> {
 }
 pub fn get_many_query_builder_struct_name(input: &DeriveInput) -> Ident {
     let dbset_name = get_dbset_name(input);
-    quote::format_ident!("{}AllQueryBuilder", dbset_name)
+    quote::format_ident!("{}ManyQueryBuilder", dbset_name)
 }
 
 pub fn get_query_builder_fields(input: &DeriveInput) -> Vec<(&Ident, &Type)> {

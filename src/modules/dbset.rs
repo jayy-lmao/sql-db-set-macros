@@ -14,7 +14,8 @@ pub fn get_dbset_impl(input: &DeriveInput) -> proc_macro2::TokenStream {
 
     let key_method = {
         let all_keys_name = utils::join_field_names(&key_fields, "_and_");
-        let all_fields_comma_sep = utils::join_field_names(&key_fields, ", ");
+        let all_fields_comma_sep = utils::join_field_names(&all_fields, ", ");
+        let key_fields_comma_sep = utils::join_field_names(&key_fields, ", ");
 
         let all_keys_where_clauses = key_fields
             .iter()
@@ -29,7 +30,7 @@ pub fn get_dbset_impl(input: &DeriveInput) -> proc_macro2::TokenStream {
             "SELECT {all_fields_comma_sep} FROM {table_name} WHERE {all_keys_where_clauses}"
         );
         let docstring = format!(
-            "Get a `{struct_name}` by it's `{all_fields_comma_sep}` field.\n\nEquivalent of sqlx's `fetch_one` method."
+            "Get a `{struct_name}` by it's `{key_fields_comma_sep}` field.\n\nEquivalent of sqlx's `fetch_one` method."
         );
 
         let key_function_args = key_fields.iter().map(|(field_name, field_type)| {
@@ -77,7 +78,7 @@ pub fn get_dbset_impl(input: &DeriveInput) -> proc_macro2::TokenStream {
         .join(", ");
 
     let method_name = quote::format_ident!("by_{}", field_name);
-    let query = format!("SELECT {all_fields_str} FROM {table_name} WHERE {field_name} = ");
+    let query = format!("SELECT {all_fields_str} FROM {table_name} WHERE {field_name} = $1");
     let docstring = format!(
         "Get a `{struct_name}` by it's `{field_name}` field.\n\nEquivalent of sqlx's `fetch_one` method."
     );

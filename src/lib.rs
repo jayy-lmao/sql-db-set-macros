@@ -17,6 +17,8 @@ pub fn dbset_derive(input: TokenStream) -> TokenStream {
     let from_row_impl = from_row::get_from_row_impl(&input);
     let dbset_impl = dbset::get_dbset_impl(&input);
 
+    println!("EXPANDED:\n{dbset_impl}");
+
     let expanded = quote! {
         #from_row_impl
         #query_builder_impl
