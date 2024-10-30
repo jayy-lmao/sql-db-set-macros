@@ -52,8 +52,7 @@ pub fn get_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream {
         let query_args_string = query_args
             .clone()
             .map(|s| s.to_string())
-            .collect::<Vec<String>>()
-            .join("");
+            .collect::<String>();
 
         let res = quote! {
             pub async fn fetch<'e, E: sqlx::PgExecutor<'e>>(

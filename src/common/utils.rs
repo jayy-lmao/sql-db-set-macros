@@ -1,4 +1,3 @@
-use quote::quote;
 use syn::{
     meta::ParseNestedMeta, punctuated::Punctuated, token::Comma, Attribute, Data, DeriveInput,
     Field, Fields, Ident, Meta, PathArguments, Type,
@@ -47,7 +46,7 @@ pub fn get_table_name(input: &DeriveInput) -> String {
                 let _ = meta.parse_nested_meta(|meta| {
                     if meta.path.is_ident("table_name") {
                         // if let Lit::Str(lit_str) = meta {}
-                        if let ParseNestedMeta { path, input, .. } = meta {
+                        if let ParseNestedMeta {  input, .. } = meta {
                             let instring = input.to_string();
                             let parsed_inn_string =
                                 extract_inner_string(&instring).expect("Could not extract inner");
@@ -65,7 +64,7 @@ pub fn get_table_name(input: &DeriveInput) -> String {
 
 pub fn get_dbset_name(input: &DeriveInput) -> Ident {
     let struct_name = &input.ident;
-    let mut set_name = format!("{}DbSet", struct_name);
+    let mut set_name = format!("{struct_name}DbSet");
 
     for attr in &input.attrs {
         if let Meta::List(meta) = attr.meta.clone() {
@@ -73,7 +72,7 @@ pub fn get_dbset_name(input: &DeriveInput) -> Ident {
                 let _ = meta.parse_nested_meta(|meta| {
                     if meta.path.is_ident("set_name") {
                         // if let Lit::Str(lit_str) = meta {}
-                        if let ParseNestedMeta { path, input, .. } = meta {
+                        if let ParseNestedMeta {  input, .. } = meta {
                             let instring = input.to_string();
                             let parsed_inn_string =
                                 extract_inner_string(&instring).expect("Could not extract inner");
@@ -123,7 +122,7 @@ pub fn get_fields(input: &DeriveInput) -> &Punctuated<Field, Comma> {
 pub fn get_field_names(input: &DeriveInput) -> Vec<&Ident> {
     let fields = get_fields(input);
     let mut field_names = Vec::new();
-    for field in fields.iter() {
+    for field in fields {
         let field_name = field.ident.as_ref().expect("could not cast ident as ref");
         field_names.push(field_name);
     }
@@ -134,7 +133,7 @@ pub fn get_key_fields(input: &DeriveInput) -> Vec<(&Ident, &Type)> {
     let fields = get_fields(input);
     let mut key_fields = Vec::new();
 
-    for field in fields.iter() {
+    for field in fields {
         let field_name = field.ident.as_ref().expect("could not cast ident as ref");
         let field_type = &field.ty;
         let is_key = field.attrs.iter().any(is_key_attr);
@@ -150,7 +149,7 @@ pub fn get_unique_fields(input: &DeriveInput) -> Vec<(&Ident, &Type)> {
     let fields = get_fields(input);
     let mut unique_fields = Vec::new();
 
-    for field in fields.iter() {
+    for field in fields {
         let field_name = field.ident.as_ref().expect("could not cast ident as ref");
         let field_type = &field.ty;
         let is_unique = field.attrs.iter().any(is_unique_attr);
@@ -165,7 +164,7 @@ pub fn get_unique_fields(input: &DeriveInput) -> Vec<(&Ident, &Type)> {
 pub fn get_all_fields(input: &DeriveInput) -> Vec<(&Ident, &Type)> {
     let mut all_fields = Vec::new();
     let fields = get_fields(input);
-    for field in fields.iter() {
+    for field in fields {
         let field_name = field.ident.as_ref().expect("could not cast ident as ref");
         let field_type = &field.ty;
 

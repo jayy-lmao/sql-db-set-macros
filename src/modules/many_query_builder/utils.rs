@@ -16,7 +16,7 @@ pub fn get_many_query_builder_fields(input: &DeriveInput) -> Vec<(&Ident, &Type)
 
     let mut query_builder_fields = Vec::new();
 
-    for field in fields.iter() {
+    for field in fields {
         let field_name = field.ident.as_ref().expect("could not cast ident as ref");
         let field_type = &field.ty;
         let is_unique = field.attrs.iter().any(is_unique_attr);
@@ -40,7 +40,7 @@ pub fn get_many_query_builder_struct_fieldsl(input: &DeriveInput) -> Vec<proc_ma
 
     let mut query_builder_struct_fields = Vec::new();
 
-    for field in fields.iter() {
+    for field in fields {
         let field_name = field.ident.as_ref().expect("could not cast ident as ref");
         let field_type = &field.ty;
         let is_unique = field.attrs.iter().any(is_unique_attr);
@@ -64,7 +64,7 @@ pub fn get_many_query_builder_struct_fields_initial(
     let fields = get_fields(input);
     let mut query_builder_struct_fields_initial = Vec::new();
 
-    for field in fields.iter() {
+    for field in fields {
         let field_name = field.ident.as_ref().expect("could not cast ident as ref");
         let is_unique = field.attrs.iter().any(is_unique_attr);
         let is_key = field.attrs.iter().any(is_key_attr);
@@ -80,7 +80,7 @@ pub fn get_many_query_builder_methods(input: &DeriveInput) -> Vec<proc_macro2::T
     let fields = get_fields(input);
     let mut query_builder_methods = Vec::new();
 
-    for field in fields.iter() {
+    for field in fields {
         let field_name = field.ident.as_ref().expect("could not cast ident as ref");
         let field_type = &field.ty;
         let is_unique = field.attrs.iter().any(is_unique_attr);
