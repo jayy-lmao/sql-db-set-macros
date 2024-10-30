@@ -46,7 +46,7 @@ pub fn get_table_name(input: &DeriveInput) -> String {
                 let _ = meta.parse_nested_meta(|meta| {
                     if meta.path.is_ident("table_name") {
                         // if let Lit::Str(lit_str) = meta {}
-                        if let ParseNestedMeta {  input, .. } = meta {
+                        if let ParseNestedMeta { input, .. } = meta {
                             let instring = input.to_string();
                             let parsed_inn_string =
                                 extract_inner_string(&instring).expect("Could not extract inner");
@@ -72,7 +72,7 @@ pub fn get_dbset_name(input: &DeriveInput) -> Ident {
                 let _ = meta.parse_nested_meta(|meta| {
                     if meta.path.is_ident("set_name") {
                         // if let Lit::Str(lit_str) = meta {}
-                        if let ParseNestedMeta {  input, .. } = meta {
+                        if let ParseNestedMeta { input, .. } = meta {
                             let instring = input.to_string();
                             let parsed_inn_string =
                                 extract_inner_string(&instring).expect("Could not extract inner");
