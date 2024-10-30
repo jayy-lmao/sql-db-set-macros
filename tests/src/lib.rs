@@ -49,14 +49,14 @@ async fn simple_query() -> Result<(), String> {
         .await
         .expect("Could not fetch one");
 
-    sqlx::raw_sql("insert into users (name, id, email) values ('bob', 'user-2', 'bobo@bob.com');")
+    sqlx::raw_sql("insert into users (name, id, email, details) values ('bob', 'user-2', 'bobo@bob.com', 'the best bob');")
         .execute(&pool)
         .await
         .expect("Could not initialise db");
 
     // let query = UserDbSetQueryBuilder::new().name_eq("bob".to_string());
     // let users = query.fetch(&pool).await.expect("could not fetch users");
-    let users = UserDbSet::all()
+    let users = UserDbSet::many()
         .name_eq("bob".to_string())
         .fetch(&pool)
         .await
@@ -64,8 +64,9 @@ async fn simple_query() -> Result<(), String> {
 
     assert_eq!(users.len(), 2);
 
-    let users = UserDbSet::all()
+    let users_b = UserDbSet::many()
         .name_eq("bob".to_string())
+        .details_eq("the best bob".to_string())
         .fetch(&pool)
         .await
         .expect("could not fetch users");
