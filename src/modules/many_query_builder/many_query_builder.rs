@@ -3,15 +3,20 @@ use syn::DeriveInput;
 
 use crate::utils;
 
+use super::utils::{
+    get_many_query_builder_fields, get_many_query_builder_methods,
+    get_many_query_builder_struct_fields_initial, get_many_query_builder_struct_fieldsl,
+    get_many_query_builder_struct_name,
+};
+
 pub fn get_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream {
     let struct_name = utils::get_struct_name(input);
-    let dbset_name = utils::get_dbset_name(input);
     let table_name = utils::get_table_name(input);
-    let query_builder_struct_name = utils::get_many_query_builder_struct_name(input);
-    let query_builder_fields = utils::get_query_builder_fields(input);
-    let query_builder_struct_fields = utils::get_query_builder_struct_fields(input);
-    let query_builder_struct_fields_initial = utils::get_query_builder_struct_fields_initial(input);
-    let query_builder_methods = utils::get_query_builder_methods(input);
+    let query_builder_struct_name = get_many_query_builder_struct_name(input);
+    let query_builder_fields = get_many_query_builder_fields(input);
+    let query_builder_struct_fields = get_many_query_builder_struct_fieldsl(input);
+    let query_builder_struct_fields_initial = get_many_query_builder_struct_fields_initial(input);
+    let query_builder_methods = get_many_query_builder_methods(input);
 
     let all_fields = utils::get_all_fields(input);
     let query_builder_fetch = {

@@ -2,12 +2,13 @@ use proc_macro::TokenStream;
 use quote::quote;
 use syn::{parse_macro_input, DeriveInput};
 
+mod common;
 mod modules;
 use modules::dbset;
 use modules::from_row;
 use modules::many_query_builder;
 
-mod utils;
+use common::utils;
 
 #[proc_macro_derive(DbSet, attributes(unique, dbset, relation, auto, key))]
 pub fn dbset_derive(input: TokenStream) -> TokenStream {
