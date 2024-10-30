@@ -19,7 +19,12 @@ pub fn get_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream {
             .iter()
             .enumerate()
             .map(|(index, (field_name, _))| {
-                format!("{} = ${} or ${} = null", field_name, index + 1, index + 1)
+                format!(
+                    "({} = ${} or ${} is null)",
+                    field_name,
+                    index + 1,
+                    index + 1
+                )
             })
             .collect::<Vec<_>>()
             .join(" AND ");
@@ -39,12 +44,20 @@ pub fn get_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream {
                     self.#field_name,
                 }
             });
+        let query_args_string = query_args
+            .clone()
+            .map(|s| s.to_string())
+            .collect::<Vec<String>>()
+            .join("");
 
-        quote! {
+        let res = quote! {
             pub async fn fetch<'e, E: sqlx::PgExecutor<'e>>(
                 self,
                 executor: E,
             ) -> Result<Vec<User>, sqlx::Error> {
+                println!("self: {:?}", self);
+                println!("str args: {:?}", stringify!(#query_args_string));
+
                 sqlx::query_as!(
                     #struct_name,
                     #query,
@@ -54,10 +67,14 @@ pub fn get_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream {
                 .await
             }
 
-        }
+
+        };
+        println!("Fetch Res: {}", res);
+        res
     };
 
     quote! {
+        #[derive(Debug)]
         pub struct #query_builder_struct_name {
             #(#query_builder_struct_fields),*
         }

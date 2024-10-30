@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, name, details, email FROM users WHERE name = $1 or $1 = null AND details = $2 or $2 = null",
+  "query": "SELECT id, name, email, details FROM users LIMIT 1;",
   "describe": {
     "columns": [
       {
@@ -15,27 +15,24 @@
       },
       {
         "ordinal": 2,
-        "name": "details",
+        "name": "email",
         "type_info": "Varchar"
       },
       {
         "ordinal": 3,
-        "name": "email",
+        "name": "details",
         "type_info": "Varchar"
       }
     ],
     "parameters": {
-      "Left": [
-        "Text",
-        "Text"
-      ]
+      "Left": []
     },
     "nullable": [
       false,
       false,
-      true,
-      false
+      false,
+      true
     ]
   },
-  "hash": "162bc372e02e716b00645a9b05b7ab3424d71aedad4dbd460ce4c2337e2d6abb"
+  "hash": "888bcabc7f6d24189477813afbe17cb401954e924e95482b28d50c17667cd6cb"
 }
