@@ -112,7 +112,6 @@ async fn test_fetch_users_by_name_and_details() -> Result<(), String> {
         .await
         .expect("Could not fetch users");
 
-    println!("users: {:?}", users);
     assert_eq!(users.len(), 1);
     Ok(())
 }
