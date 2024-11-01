@@ -53,6 +53,13 @@ async fn prepare_db() -> (Container<'static, TestPostgres>, Pool<Postgres>) {
         .await
         .expect("Could not initialise db");
 
+    sqlx::query(
+        "INSERT INTO users (name, id, email) VALUES ('alice', 'user-3', 'alice@alice.com');",
+    )
+    .execute(&pool)
+    .await
+    .expect("Could not initialise db");
+
     (container, pool)
 }
 
@@ -65,9 +72,11 @@ async fn get_db_pool() -> &'static Pool<Postgres> {
 async fn test_fetch_user_by_id() -> Result<(), String> {
     let pool = get_db_pool().await;
 
-    let user = UserDbSet::by_id(pool, "user-1".to_string())
+    let user = UserDbSet::one()
+        .id_eq("user-1".to_string())
+        .fetch_one(pool)
         .await
-        .expect("Could not query user");
+        .expect("could not run query");
 
     assert_eq!(user.id, "user-1");
     assert_eq!(user.name, "bob");
@@ -113,5 +122,18 @@ async fn test_fetch_users_by_name_and_details() -> Result<(), String> {
         .expect("Could not fetch users");
 
     assert_eq!(users.len(), 1);
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_fetch_all_users() -> Result<(), String> {
+    let pool = get_db_pool().await;
+
+    let users = UserDbSet::many()
+        .fetch(pool)
+        .await
+        .expect("Could not fetch users");
+
+    assert_eq!(users.len(), 3);
     Ok(())
 }

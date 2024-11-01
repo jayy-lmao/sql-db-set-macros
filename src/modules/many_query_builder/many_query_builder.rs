@@ -20,7 +20,7 @@ pub fn get_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream {
 
     let all_fields = utils::get_all_fields(input);
     let query_builder_fetch = {
-        let all_query_builder_fields = query_builder_fields
+        let query_builder_where_fields = query_builder_fields
             .iter()
             .enumerate()
             .map(|(index, (field_name, _))| {
@@ -40,8 +40,14 @@ pub fn get_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream {
             .collect::<Vec<_>>()
             .join(", ");
 
-        let query =
-            format!("SELECT {all_fields_str} FROM {table_name} WHERE {all_query_builder_fields}");
+        let full_where_clause = if !query_builder_where_fields.is_empty() {
+            format!("WHERE {query_builder_where_fields}")
+        } else {
+            String::new()
+        };
+
+        let query = format!("SELECT {all_fields_str} FROM {table_name} {full_where_clause}");
+
         let query_args = query_builder_fields
             .iter()
             .map(|(field_name, _field_type)| {
@@ -49,10 +55,6 @@ pub fn get_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream {
                     self.#field_name,
                 }
             });
-        let query_args_string = query_args
-            .clone()
-            .map(|s| s.to_string())
-            .collect::<String>();
 
         let res = quote! {
             pub async fn fetch<'e, E: sqlx::PgExecutor<'e>>(

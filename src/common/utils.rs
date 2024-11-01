@@ -1,7 +1,26 @@
+use std::str::FromStr;
+
+use proc_macro2::TokenStream;
 use syn::{
-    meta::ParseNestedMeta, punctuated::Punctuated, token::Comma, Attribute, Data, DeriveInput,
-    Field, Fields, Ident, Meta, PathArguments, Type,
+    meta::ParseNestedMeta, parse2, punctuated::Punctuated, token::Comma, Attribute, Data,
+    DeriveInput, Field, Fields, File, Ident, Meta, PathArguments, Type,
 };
+
+pub fn derive_input_from_string(input: &str) -> Result<DeriveInput, syn::Error> {
+    let token_stream = TokenStream::from_str(input)?;
+    parse2::<DeriveInput>(token_stream)
+}
+pub fn tokenstream_from_string(input: &str) -> Result<proc_macro2::TokenStream, String> {
+    proc_macro2::TokenStream::from_str(input)
+        .map_err(|err| syn::Error::new(proc_macro2::Span::call_site(), err).to_string())
+}
+
+pub fn pretty_print_tokenstream(ts: proc_macro2::TokenStream) -> String {
+    match parse2::<File>(ts) {
+        Ok(file) => format!("{}", prettyplease::unparse(&file)),
+        Err(err) => format!("Failed to parse TokenStream: {}", err),
+    }
+}
 
 // Helper function to check if an attribute is #[auto]
 pub fn is_auto_attr(attr: &Attribute) -> bool {
