@@ -2,19 +2,20 @@ use proc_macro2::Ident;
 use quote::quote;
 use syn::{DeriveInput, Type};
 
-use crate::common::utils::{get_all_fields, get_auto_fields, get_inner_option_type, get_struct_name, get_table_name };
-pub fn get_insert_builder_struct_name (input: &DeriveInput) -> Ident {
+use crate::common::utils::{
+    get_all_fields, get_auto_fields, get_inner_option_type, get_struct_name, get_table_name,
+};
+pub fn get_insert_builder_struct_name(input: &DeriveInput) -> Ident {
     let struct_name = get_struct_name(input);
-     quote::format_ident!("{}InsertBuilder", struct_name)
+    quote::format_ident!("{}InsertBuilder", struct_name)
 }
 
 pub fn get_insert_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream {
     let table_name = get_table_name(input);
     let struct_name = get_struct_name(input);
-    let builder_struct_name = get_insert_builder_struct_name (input);
-    let all_fields= get_all_fields(input);
+    let builder_struct_name = get_insert_builder_struct_name(input);
+    let all_fields = get_all_fields(input);
     let auto_fields = get_auto_fields(input);
-
 
     let is_not_auto_field = |(field, _): &(&proc_macro2::Ident, &Type)| {
         !auto_fields
@@ -22,30 +23,26 @@ pub fn get_insert_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream
             .any(|(auto_field, _)| auto_field == field)
     };
 
-    let non_nullable_fields = all_fields.iter().filter(|(_,ty)| get_inner_option_type(ty).is_none());
+    let non_nullable_fields = all_fields
+        .iter()
+        .filter(|(_, ty)| get_inner_option_type(ty).is_none());
 
+    let all_required_insert_fields = non_nullable_fields.filter(|&x| is_not_auto_field(x));
 
-    let all_required_insert_fields = non_nullable_fields
-            .filter(|&x| is_not_auto_field(x))
-    ;
-
-    let all_insert_fields = all_fields.iter()
-            .filter(|&x| is_not_auto_field(x))
-    ;
+    let all_insert_fields = all_fields.iter().filter(|&x| is_not_auto_field(x));
 
     // Get builder struct generics
-    let builder_struct_generics = all_required_insert_fields.clone()
-        .map(|(field_name, _)| {
-            quote! {
-                #field_name = NotSet,
-            }
-        });
+    let builder_struct_generics = all_required_insert_fields.clone().map(|(field_name, _)| {
+        quote! {
+            #field_name = NotSet,
+        }
+    });
 
-    let struct_fields = all_insert_fields.clone().filter(|&x| is_not_auto_field(x))
+    let struct_fields = all_insert_fields
+        .clone()
+        .filter(|&x| is_not_auto_field(x))
         .map(|(name, ty)| {
-
-
-            let inner_field_type= get_inner_option_type(ty);
+            let inner_field_type = get_inner_option_type(ty);
 
             let type_arg = match inner_field_type {
                 Some(inner) => inner,
@@ -55,11 +52,10 @@ pub fn get_insert_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream
             quote! { #name: Option< #type_arg >, }
         });
 
-    let phantom_struct_fields = all_required_insert_fields.clone()
-        .map(|(name, _)| {
-            let ph_name = quote::format_ident!("_{}", name);
-            quote! { #ph_name: std::marker::PhantomData::<#name>, }
-        });
+    let phantom_struct_fields = all_required_insert_fields.clone().map(|(name, _)| {
+        let ph_name = quote::format_ident!("_{}", name);
+        quote! { #ph_name: std::marker::PhantomData::<#name>, }
+    });
 
     // Create Builder Struct
     let builder_struct = quote! {
@@ -70,23 +66,20 @@ pub fn get_insert_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream
     };
 
     // Create new impl
-    let initial_generics = all_required_insert_fields.clone()
-        .map(|_| {
-            quote! {
-                NotSet,
-            }
-        });
+    let initial_generics = all_required_insert_fields.clone().map(|_| {
+        quote! {
+            NotSet,
+        }
+    });
 
-    let initial_struct_fields = all_insert_fields.clone()
-        .map(|(name, _)| {
-            quote! { #name: None, }
-        });
+    let initial_struct_fields = all_insert_fields.clone().map(|(name, _)| {
+        quote! { #name: None, }
+    });
 
-    let initial_phantom_struct_fields = all_required_insert_fields.clone()
-        .map(|(name, _)| {
-            let ph_name = quote::format_ident!("_{}", name);
-            quote! { #ph_name: std::marker::PhantomData::<NotSet>, }
-        });
+    let initial_phantom_struct_fields = all_required_insert_fields.clone().map(|(name, _)| {
+        let ph_name = quote::format_ident!("_{}", name);
+        quote! { #ph_name: std::marker::PhantomData::<NotSet>, }
+    });
 
     let new_impl = quote! {
             pub fn new() -> #builder_struct_name <#(#initial_generics)*>  {
@@ -98,14 +91,14 @@ pub fn get_insert_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream
     };
 
     // Create add value functions
-    let fill_other_fields = all_insert_fields.clone()
+    let fill_other_fields = all_insert_fields
+        .clone()
         .map(|(name, _)| (name, quote! { #name: self.#name, }));
 
-    let fill_other_phantom_fields = all_required_insert_fields.clone()
-        .map(|(name, _)| {
-            let ph_name = quote::format_ident!("_{}", name);
-            (name, quote! { #ph_name: self.#ph_name, })
-        });
+    let fill_other_phantom_fields = all_required_insert_fields.clone().map(|(name, _)| {
+        let ph_name = quote::format_ident!("_{}", name);
+        (name, quote! { #ph_name: self.#ph_name, })
+    });
 
     let builder_methods = all_insert_fields.clone()
         .map(|(field_name, field_type)| {
@@ -177,23 +170,34 @@ pub fn get_insert_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream
 
     // Create complete impl
 
-    let insert_method_generics = all_required_insert_fields.clone().map(|(_,_)|{
-                quote !{ Set, }
+    let insert_method_generics = all_required_insert_fields.clone().map(|(_, _)| {
+        quote! { Set, }
     });
 
-        let all_fields_str = all_fields
-            .iter()
-            .map(|(field_name, _)| field_name.to_string())
-            .collect::<Vec<_>>()
-            .join(", ");
+    let all_fields_str = all_fields
+        .iter()
+        .map(|(field_name, _)| field_name.to_string())
+        .collect::<Vec<_>>()
+        .join(", ");
 
-    let all_insert_fields_str = all_insert_fields.clone().map(|(name,_)| { name.to_string() }).collect::<Vec<String>>().join(", ");
-    let all_params = all_insert_fields.clone().enumerate().map(|(index,_)| { format!("${}", (index + 1))  }).collect::<Vec<String>>().join(", ");
+    let all_insert_fields_str = all_insert_fields
+        .clone()
+        .map(|(name, _)| name.to_string())
+        .collect::<Vec<String>>()
+        .join(", ");
+    let all_params = all_insert_fields
+        .clone()
+        .enumerate()
+        .map(|(index, _)| format!("${}", (index + 1)))
+        .collect::<Vec<String>>()
+        .join(", ");
     let query = format!("INSERT INTO {table_name}({all_insert_fields_str}) VALUES ({all_params}) RETURNING {all_fields_str};");
 
-    let query_args = all_insert_fields.clone().map(|(name,_)| { quote!{ self.#name, } });
+    let query_args = all_insert_fields.clone().map(|(name, _)| {
+        quote! { self.#name, }
+    });
 
-    let insert_method = quote !{ 
+    let insert_method = quote! {
         impl  #builder_struct_name <#(#insert_method_generics)*> {
                 pub async fn insert<'e, E: sqlx::PgExecutor<'e>>(
                     self,
@@ -210,7 +214,6 @@ pub fn get_insert_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream
         }
     };
 
-
     let builder_struct_impl = quote! {
         #builder_struct
 
@@ -220,7 +223,7 @@ pub fn get_insert_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream
 
         #(#builder_methods)*
 
-        #insert_method 
+        #insert_method
     };
 
     builder_struct_impl
