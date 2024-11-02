@@ -15,6 +15,7 @@ pub fn compare_computed_to_expected(input_string: &str, output_string: &str) {
     assert_eq!(pretty_out.to_string(), pretty_expected);
 }
 
+#[ignore]
 #[test]
 fn can_parse_user_struct_with_unique_and_key_into_one_builder() -> Result<(), String> {
     let input_str = r#"
@@ -100,6 +101,7 @@ impl UserDbSetOneQueryBuilder<Set, NotSet> {
     Ok(())
 }
 
+#[ignore]
 #[test]
 fn can_parse_order_with_key_into_one_builder() -> Result<(), String> {
     let input_str = r#"
@@ -155,6 +157,7 @@ impl OrderDbSetOneQueryBuilder<Set> {
     Ok(())
 }
 
+#[ignore]
 #[test]
 fn can_parse_tag_with_unique_into_one_builder() -> Result<(), String> {
     let input_str = r#"

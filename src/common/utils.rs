@@ -16,9 +16,13 @@ pub fn tokenstream_from_string(input: &str) -> Result<proc_macro2::TokenStream, 
 }
 
 pub fn pretty_print_tokenstream(ts: proc_macro2::TokenStream) -> String {
-    match parse2::<File>(ts) {
+    match parse2::<File>(ts.clone()) {
         Ok(file) => format!("{}", prettyplease::unparse(&file)),
-        Err(err) => format!("Failed to parse TokenStream: {}", err),
+        Err(err) => format!(
+            "Failed to parse TokenStream: {}. Stream was {}",
+            err,
+            ts.to_string()
+        ),
     }
 }
 
@@ -146,6 +150,22 @@ pub fn get_field_names(input: &DeriveInput) -> Vec<&Ident> {
         field_names.push(field_name);
     }
     field_names
+}
+
+pub fn get_auto_fields(input: &DeriveInput) -> Vec<(&Ident, &Type)> {
+    let fields = get_fields(input);
+    let mut auto_fields = Vec::new();
+
+    for field in fields {
+        let field_name = field.ident.as_ref().expect("could not cast ident as ref");
+        let field_type = &field.ty;
+        let is_auto = field.attrs.iter().any(is_auto_attr);
+
+        if is_auto {
+            auto_fields.push((field_name, field_type));
+        }
+    }
+    auto_fields
 }
 
 pub fn get_key_fields(input: &DeriveInput) -> Vec<(&Ident, &Type)> {

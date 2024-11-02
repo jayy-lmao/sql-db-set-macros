@@ -156,7 +156,6 @@ pub fn get_one_query_builder_unique_methods(input: &DeriveInput) -> Vec<proc_mac
                                 #(#key_struct_fields)*
                                 #(#unique_struct_fields)*
                             }
-
                         }
                 });
         }
