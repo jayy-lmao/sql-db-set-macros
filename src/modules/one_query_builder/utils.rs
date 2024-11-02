@@ -105,8 +105,8 @@ pub fn get_one_query_builder_unique_methods(input: &DeriveInput) -> Vec<proc_mac
     };
 
     let generic_key_set = match variant {
-        Variants::UniqueFieldsExist => quote! {},
-        Variants::KeyFieldsExist => quote! { ::<Set> },
+        Variants::UniqueFieldsExist => quote! {::<Set>},
+        Variants::KeyFieldsExist => quote! {},
         Variants::KeyFieldsAndUniqueFieldsExist => {
             quote! { ::<NotSet, Set> }
         }
@@ -138,12 +138,20 @@ pub fn get_one_query_builder_unique_methods(input: &DeriveInput) -> Vec<proc_mac
 
         if is_unique && !is_key {
             let method_name = quote::format_ident!("{}_eq", field_name);
+            let key_fields_phantom_data = if !key_fields.is_empty() {
+                quote! {
+                                _key_fields: std::marker::PhantomData::<NotSet>,
+
+                }
+            } else {
+                quote! {}
+            };
 
             query_builder_methods.push(quote! {
-                        pub fn #method_name(mut self, value: #field_type) -> #query_builder_struct_name<NotSet,Set> {
+                        pub fn #method_name(self, value: #field_type) -> #query_builder_struct_name #generic_key_set {
                             #query_builder_struct_name #generic_key_set {
                                 #field_name: Some(value),
-                                _key_fields: std::marker::PhantomData::<NotSet>,
+                                #key_fields_phantom_data
                                 _unique_fields: std::marker::PhantomData::<Set>,
                                 #(#key_struct_fields)*
                                 #(#unique_struct_fields)*
@@ -210,13 +218,21 @@ pub fn get_one_query_builder_key_methods(input: &DeriveInput) -> Vec<proc_macro2
             quote! {}
         };
 
+        let key_field_phantom_data = if !key_fields.is_empty() {
+            quote! {
+                            _key_fields: std::marker::PhantomData::<Set>,
+            }
+        } else {
+            quote! {}
+        };
+
         if is_key {
             let method_name = quote::format_ident!("{}_eq", field_name);
             query_builder_methods.push(quote! {
                     pub fn #method_name(self, value: #field_type) -> #query_builder_struct_name #generic_key_set {
                         #query_builder_struct_name #generic_key_set {
                             #field_name: Some(value),
-                            _key_fields: std::marker::PhantomData::<Set>,
+                            #key_field_phantom_data
                             #unique_field_phantom_data
                             #(#key_struct_fields)*
                             #(#unique_struct_fields)*

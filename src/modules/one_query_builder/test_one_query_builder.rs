@@ -1,5 +1,3 @@
-use syn::{parse_macro_input, DeriveInput};
-
 use pretty_assertions::assert_eq;
 
 use crate::common::utils::{
@@ -51,7 +49,7 @@ impl UserDbSetOneQueryBuilder {
     }
 }
 impl UserDbSetOneQueryBuilder<NotSet, NotSet> {
-    pub fn email_eq(mut self, value: String) -> UserDbSetOneQueryBuilder<NotSet, Set> {
+    pub fn email_eq(self, value: String) -> UserDbSetOneQueryBuilder<NotSet, Set> {
         UserDbSetOneQueryBuilder::<NotSet, Set> {
             email: Some(value),
             _key_fields: std::marker::PhantomData::<NotSet>,
@@ -157,7 +155,6 @@ impl OrderDbSetOneQueryBuilder<Set> {
     Ok(())
 }
 
-#[ignore]
 #[test]
 fn can_parse_tag_with_unique_into_one_builder() -> Result<(), String> {
     let input_str = r#"

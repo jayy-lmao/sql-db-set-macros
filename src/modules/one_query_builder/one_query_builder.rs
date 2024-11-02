@@ -266,7 +266,6 @@ pub fn get_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream {
         }
 
         #unique_set_impl
-
         #key_set_impl
     }
 }
