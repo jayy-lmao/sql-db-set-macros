@@ -109,11 +109,10 @@ pub fn get_insert_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream
 
             let ph_field =
             if inner_field_type.is_none() {
-            quote !{
-                    #ph_name: std::marker::PhantomData::<Set>,
-            } } 
-            else
-            { quote!{}};
+                quote! { #ph_name: std::marker::PhantomData::<Set>, } 
+            } else { 
+                quote! { }
+            };
             
             let remaining_fill = fill_other_fields
                 .clone()
@@ -123,23 +122,23 @@ pub fn get_insert_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream
 
             let pre_impl_generics_in = all_required_insert_fields.clone().map(|(gen_name, _)|{
                 if gen_name != field_name {
-                    return quote !{ #gen_name, }
+                    return quote!{ #gen_name, }
                 }
-                quote !{  }
+                quote!{  }
             });
 
             let generics_in = all_required_insert_fields.clone().map(|(gen_name, _)|{
                 if gen_name != field_name {
-                    return quote !{ #gen_name, }
+                    return quote!{ #gen_name, }
                 }
-                quote !{ NotSet, }
+                quote!{ NotSet, }
             });
             
             let generics_out = all_required_insert_fields.clone().map(|(gen_name, _)|{
                 if gen_name != field_name {
-                    return quote !{ #gen_name, }
+                    return quote!{ #gen_name, }
                 }
-                quote !{ Set, }
+                quote!{ Set, }
             });
 
             let remaining_phantom_fill = fill_other_phantom_fields
