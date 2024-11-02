@@ -1,12 +1,17 @@
+use proc_macro2::Ident;
 use quote::quote;
 use syn::{DeriveInput, Type};
 
 use crate::common::utils::{get_auto_fields, get_key_fields, get_struct_name, get_unique_fields, get_table_name, get_all_fields};
+pub fn get_insert_builder_struct_name (input: &DeriveInput) -> Ident {
+    let struct_name = get_struct_name(input);
+     quote::format_ident!("{}InsertBuilder", struct_name)
+}
 
 pub fn get_insert_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream {
     let table_name = get_table_name(input);
     let struct_name = get_struct_name(input);
-    let builder_struct_name = quote::format_ident!("{}InsertBuilder", struct_name);
+    let builder_struct_name = get_insert_builder_struct_name (input);
     let all_fields= get_all_fields(input);
     let auto_fields = get_auto_fields(input);
     let key_fields = get_key_fields(input);
@@ -43,8 +48,6 @@ pub fn get_insert_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream
 
     // Create Builder Struct
     let builder_struct = quote! {
-        pub struct Set;
-        pub struct NotSet;
         pub struct #builder_struct_name <#(#builder_struct_generics)*> {
             #(#struct_fields)*
             #(#phantom_struct_fields)*
@@ -127,7 +130,7 @@ pub fn get_insert_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream
                 .map(|(_, value)| value);
 
             quote! {
-                impl <#(#pre_impl_generics_in)*> #struct_name <#(#generics_in)*> {
+                impl <#(#pre_impl_generics_in)*> #builder_struct_name <#(#generics_in)*> {
                         pub fn #method_name(self, value: #field_type) -> #builder_struct_name <#(#generics_out)*>  {
                             #builder_struct_name  {
                                 #field_name: Some(value),
@@ -183,9 +186,6 @@ pub fn get_insert_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream
 
         impl #builder_struct_name {
             #new_impl
-
-
-
         }
 
         #(#builder_methods)*

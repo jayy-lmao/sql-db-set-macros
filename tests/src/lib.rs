@@ -137,3 +137,31 @@ async fn test_fetch_all_users() -> Result<(), String> {
     assert_eq!(users.len(), 3);
     Ok(())
 }
+
+#[tokio::test]
+async fn test_insert_users() -> Result<(), String> {
+    let pool = get_db_pool().await;
+
+    // let users = UserDbSet::many()
+    //     .fetch(pool)
+    //     .await
+    //     .expect("Could not fetch users");
+    let inserted_user = UserDbSet::insert()
+        .id_eq("id-3".to_string())
+        .email_eq("steven".to_string())
+        .insert(pool)
+        .await
+        .expect("Could not insert");
+
+    let matched_user = sqlx::query_as!(
+        User,
+        "SELECT id, name, email, details FROM users WHERE id = 'id-3';"
+    )
+    .fetch_one(pool)
+    .await
+    .expect("Could not fetch one");
+
+    assert_eq!(matched_user.email, inserted_user.email);
+
+    Ok(())
+}

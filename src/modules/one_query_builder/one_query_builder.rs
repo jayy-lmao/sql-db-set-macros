@@ -241,8 +241,6 @@ pub fn get_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream {
     };
 
     quote! {
-        pub struct NotSet;
-        pub struct Set;
 
         #[derive(Debug)]
         pub struct #query_builder_struct_name #generics  {

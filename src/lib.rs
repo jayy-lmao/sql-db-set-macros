@@ -1,4 +1,4 @@
-use modules::one_query_builder;
+use modules::{insert_query_builder, one_query_builder};
 use proc_macro::TokenStream;
 use quote::quote;
 use syn::File;
@@ -21,9 +21,10 @@ pub fn dbset_derive(input: TokenStream) -> TokenStream {
 
     let many_query_builder_impl = many_query_builder::get_query_builder(&input);
     let one_query_builder_impl = one_query_builder::get_query_builder(&input);
+    let insert_builder_impl = insert_query_builder::get_insert_query_builder(&input);
 
-    // println!("{one_query_builder_impl}");
-    //pretty_print_tokenstream(one_query_builder_impl);
+    // println!("{}", pretty_print_tokenstream(insert_builder_impl.clone()));
+
     let from_row_impl = from_row::get_from_row_impl(&input);
     let dbset_impl = dbset::get_dbset_impl(&input);
 
@@ -33,9 +34,14 @@ pub fn dbset_derive(input: TokenStream) -> TokenStream {
 
         mod #module_name {
             use super::User;
+
+            pub struct Set;
+            pub struct NotSet;
+
             #from_row_impl
             #many_query_builder_impl
             #one_query_builder_impl
+            #insert_builder_impl
             #dbset_impl
         }
 
