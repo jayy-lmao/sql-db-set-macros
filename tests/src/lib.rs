@@ -142,14 +142,10 @@ async fn test_fetch_all_users() -> Result<(), String> {
 async fn test_insert_users() -> Result<(), String> {
     let pool = get_db_pool().await;
 
-    // let users = UserDbSet::many()
-    //     .fetch(pool)
-    //     .await
-    //     .expect("Could not fetch users");
     let inserted_user = UserDbSet::insert()
-        .id_eq("id-3".to_string())
-        .email_eq("steven@stevenson.com".to_string())
-        .name_eq("steven".to_string())
+        .id("id-3".to_string())
+        .email("steven@stevenson.com".to_string())
+        .name("steven".to_string())
         .insert(pool)
         .await
         .expect("Could not insert");

@@ -96,7 +96,7 @@ pub fn get_insert_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream
 
     let builder_methods = all_insert_fields.clone()
         .map(|(field_name, field_type)| {
-            let method_name = quote::format_ident!("{}_eq", field_name);
+            let method_name = quote::format_ident!("{}", field_name);
             let ph_name = quote::format_ident!("_{}", field_name);
 
             let remaining_fill = fill_other_fields
