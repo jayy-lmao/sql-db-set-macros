@@ -1,4 +1,4 @@
-use pretty_assertions::assert;
+use pretty_assertions::assert_eq;
 
 use crate::common::utils::{
     derive_input_from_string, pretty_print_tokenstream, tokenstream_from_string,
@@ -12,7 +12,7 @@ pub fn compare_computed_to_expected(input_string: &str, output_string: &str) {
     let pretty_out = pretty_print_tokenstream(out_tokens);
     let pretty_expected =
         pretty_print_tokenstream(tokenstream_from_string(output_string).expect("coudnt"));
-    assert!(pretty_out.to_string(), pretty_expected);
+    assert_eq!(pretty_out.to_string(), pretty_expected);
 }
 
 #[test]
@@ -41,9 +41,9 @@ impl AccountInsertBuilder {
     }
 }
 impl AccountInsertBuilder<NotSet> {
-    pub fn email(self, value: String) -> AccountInsertBuilder<Set> {
+    pub fn email(self, email: String) -> AccountInsertBuilder<Set> {
         AccountInsertBuilder {
-            email: Some(value),
+            email: Some(email),
             _email: std::marker::PhantomData::<Set>,
         }
     }
@@ -105,11 +105,11 @@ impl UserInsertBuilder {
     }
 }
 impl<name, email> UserInsertBuilder<NotSet, name, email> {
-    pub fn id(self, value: String) -> UserInsertBuilder<Set, name, email> {
+    pub fn id(self, id: String) -> UserInsertBuilder<Set, name, email> {
         UserInsertBuilder {
-            id: Some(value),
+            id: Some(id),
             name: self.name,
-            details: Some(value),
+            details: self.details,
             email: self.email,
             _id: std::marker::PhantomData::<Set>,
             _name: self._name,
@@ -118,11 +118,11 @@ impl<name, email> UserInsertBuilder<NotSet, name, email> {
     }
 }
 impl<id, email> UserInsertBuilder<id, NotSet, email> {
-    pub fn name(self, value: String) -> UserInsertBuilder<id, Set, email> {
+    pub fn name(self, name: String) -> UserInsertBuilder<id, Set, email> {
         UserInsertBuilder {
-            name: Some(value),
+            name: Some(name),
             id: self.id,
-            details: Some(value),
+            details: self.details,
             email: self.email,
             _name: std::marker::PhantomData::<Set>,
             _id: self._id,
@@ -131,25 +131,25 @@ impl<id, email> UserInsertBuilder<id, NotSet, email> {
     }
 }
 impl<id,name, email> UserInsertBuilder<id, name, email> {
-    pub fn details(self, value: String) -> UserInsertBuilder<id, name, email> {
+    pub fn details(self, details: String) -> UserInsertBuilder<id, name, email> {
         UserInsertBuilder {
+            details: Some(details),
             id: self.id,
-            name: self.name,,
-            details: Some(value),
+            name: self.name,
             email: self.email,
-            _name: std::marker::PhantomData::<Set>,
             _id: self._id,
+            _name: self._name,
             _email: self._email,
         }
     }
 }
 impl<id, name> UserInsertBuilder<id, name, NotSet> {
-    pub fn email(self, value: String) -> UserInsertBuilder<id, name, Set> {
+    pub fn email(self, email: String) -> UserInsertBuilder<id, name, Set> {
         UserInsertBuilder {
-            email: Some(value),
+            email: Some(email),
             id: self.id,
             name: self.name,
-            details: Option<String>,
+            details: self.details,
             _email: std::marker::PhantomData::<Set>,
             _id: self._id,
             _name: self._name,

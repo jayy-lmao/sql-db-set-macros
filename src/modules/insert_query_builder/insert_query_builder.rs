@@ -25,12 +25,16 @@ pub fn get_insert_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream
     let non_nullable_fields = all_fields.iter().filter(|(_,ty)| get_inner_option_type(ty).is_none());
 
 
-    let all_insert_fields = non_nullable_fields
+    let all_required_insert_fields = non_nullable_fields
+            .filter(|&x| is_not_auto_field(x))
+    ;
+
+    let all_insert_fields = all_fields.iter()
             .filter(|&x| is_not_auto_field(x))
     ;
 
     // Get builder struct generics
-    let builder_struct_generics = all_insert_fields.clone()
+    let builder_struct_generics = all_required_insert_fields.clone()
         .map(|(field_name, _)| {
             quote! {
                 #field_name = NotSet,
@@ -39,10 +43,19 @@ pub fn get_insert_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream
 
     let struct_fields = all_insert_fields.clone().filter(|&x| is_not_auto_field(x))
         .map(|(name, ty)| {
-            quote! { #name: Option< #ty >, }
+
+
+            let inner_field_type= get_inner_option_type(ty);
+
+            let type_arg = match inner_field_type {
+                Some(inner) => inner,
+                None => ty,
+            };
+
+            quote! { #name: Option< #type_arg >, }
         });
 
-    let phantom_struct_fields = all_insert_fields.clone()
+    let phantom_struct_fields = all_required_insert_fields.clone()
         .map(|(name, _)| {
             let ph_name = quote::format_ident!("_{}", name);
             quote! { #ph_name: std::marker::PhantomData::<#name>, }
@@ -57,7 +70,7 @@ pub fn get_insert_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream
     };
 
     // Create new impl
-    let initial_generics = all_insert_fields.clone()
+    let initial_generics = all_required_insert_fields.clone()
         .map(|_| {
             quote! {
                 NotSet,
@@ -69,7 +82,7 @@ pub fn get_insert_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream
             quote! { #name: None, }
         });
 
-    let initial_phantom_struct_fields = all_insert_fields.clone()
+    let initial_phantom_struct_fields = all_required_insert_fields.clone()
         .map(|(name, _)| {
             let ph_name = quote::format_ident!("_{}", name);
             quote! { #ph_name: std::marker::PhantomData::<NotSet>, }
@@ -88,7 +101,7 @@ pub fn get_insert_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream
     let fill_other_fields = all_insert_fields.clone()
         .map(|(name, _)| (name, quote! { #name: self.#name, }));
 
-    let fill_other_phantom_fields = all_insert_fields.clone()
+    let fill_other_phantom_fields = all_required_insert_fields.clone()
         .map(|(name, _)| {
             let ph_name = quote::format_ident!("_{}", name);
             (name, quote! { #ph_name: self.#ph_name, })
@@ -99,27 +112,37 @@ pub fn get_insert_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream
             let method_name = quote::format_ident!("{}", field_name);
             let ph_name = quote::format_ident!("_{}", field_name);
 
+            let inner_field_type= get_inner_option_type(field_type);
+
+            let ph_field =
+            if inner_field_type.is_none() {
+            quote !{
+                    #ph_name: std::marker::PhantomData::<Set>,
+            } } 
+            else
+            { quote!{}};
+            
             let remaining_fill = fill_other_fields
                 .clone()
                 .filter(|(other_field_name, _)| *other_field_name != field_name)
                 .map(|(_, value)| value);
 
 
-            let pre_impl_generics_in = all_insert_fields.clone().map(|(gen_name, _)|{
+            let pre_impl_generics_in = all_required_insert_fields.clone().map(|(gen_name, _)|{
                 if gen_name != field_name {
                     return quote !{ #gen_name, }
                 }
                 quote !{  }
             });
 
-            let generics_in = all_insert_fields.clone().map(|(gen_name, _)|{
+            let generics_in = all_required_insert_fields.clone().map(|(gen_name, _)|{
                 if gen_name != field_name {
                     return quote !{ #gen_name, }
                 }
                 quote !{ NotSet, }
             });
             
-            let generics_out = all_insert_fields.clone().map(|(gen_name, _)|{
+            let generics_out = all_required_insert_fields.clone().map(|(gen_name, _)|{
                 if gen_name != field_name {
                     return quote !{ #gen_name, }
                 }
@@ -131,13 +154,18 @@ pub fn get_insert_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream
                 .filter(|(other_field_name, _)| *other_field_name != field_name)
                 .map(|(_, value)| value);
 
+            let type_arg = match inner_field_type {
+                Some(inner) => inner,
+                None => field_type,
+            };
+
             quote! {
                 impl <#(#pre_impl_generics_in)*> #builder_struct_name <#(#generics_in)*> {
-                        pub fn #method_name(self, value: #field_type) -> #builder_struct_name <#(#generics_out)*>  {
+                        pub fn #method_name(self, #field_name: #type_arg) -> #builder_struct_name <#(#generics_out)*>  {
                             #builder_struct_name  {
-                                #field_name: Some(value),
+                                #field_name: Some(#field_name),
                                 #(#remaining_fill)*
-                                #ph_name: std::marker::PhantomData::<Set>,
+                                #ph_field
                                 #(#remaining_phantom_fill)*
 
                             }
@@ -149,7 +177,7 @@ pub fn get_insert_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream
 
     // Create complete impl
 
-    let insert_method_generics = all_insert_fields.clone().map(|(_,_)|{
+    let insert_method_generics = all_required_insert_fields.clone().map(|(_,_)|{
                 quote !{ Set, }
     });
 
