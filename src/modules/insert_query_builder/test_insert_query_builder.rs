@@ -28,25 +28,19 @@ pub struct Account {
     "#;
 
     let output = r#"
-        pub struct Set;
-        pub struct NotSet;
-
 pub struct AccountInsertBuilder<email = NotSet> {
     email: Option<String>,
     _email: std::marker::PhantomData<email>,
-
 }
 impl AccountInsertBuilder {
     pub fn new() -> AccountInsertBuilder<NotSet> {
-        Self { 
+        Self {
             email: None,
             _email: std::marker::PhantomData::<NotSet>,
-
         }
     }
 }
-
-impl Account<NotSet> {
+impl AccountInsertBuilder<NotSet> {
     pub fn email_eq(self, value: String) -> AccountInsertBuilder<Set> {
         AccountInsertBuilder {
             email: Some(value),
@@ -54,8 +48,7 @@ impl Account<NotSet> {
         }
     }
 }
-
-impl AccountInsertBuilder<Set>  {
+impl AccountInsertBuilder<Set> {
     pub async fn insert<'e, E: sqlx::PgExecutor<'e>>(
         self,
         executor: E,
@@ -66,10 +59,8 @@ impl AccountInsertBuilder<Set>  {
         )
             .fetch_one(executor)
             .await
-     }
- }
- 
-
+    }
+}
 
     "#;
 
@@ -91,61 +82,77 @@ pub struct User {
     "#;
 
     let output = r#"
-        pub struct Set;
-        pub struct NotSet;
-
-pub struct UserInsertBuilder<id = NotSet, email = NotSet> {
+pub struct UserInsertBuilder<id = NotSet, name = NotSet, email = NotSet> {
     id: Option<String>,
+    name: Option<String>,
     email: Option<String>,
     _id: std::marker::PhantomData<id>,
+    _name: std::marker::PhantomData<name>,
     _email: std::marker::PhantomData<email>,
 }
 impl UserInsertBuilder {
-    pub fn new() -> UserInsertBuilder<NotSet, NotSet> {
+    pub fn new() -> UserInsertBuilder<NotSet, NotSet, NotSet> {
         Self {
             id: None,
+            name: None,
             email: None,
             _id: std::marker::PhantomData::<NotSet>,
+            _name: std::marker::PhantomData::<NotSet>,
             _email: std::marker::PhantomData::<NotSet>,
         }
     }
 }
-
-impl<email> User<NotSet, email> {
-    pub fn id_eq(self, value: String) -> UserInsertBuilder<Set, email> {
+impl<name, email> UserInsertBuilder<NotSet, name, email> {
+    pub fn id_eq(self, value: String) -> UserInsertBuilder<Set, name, email> {
         UserInsertBuilder {
             id: Some(value),
+            name: self.name,
             email: self.email,
             _id: std::marker::PhantomData::<Set>,
+            _name: self._name,
             _email: self._email,
         }
     }
 }
-impl<id> User<id, NotSet> {
-    pub fn email_eq(self, value: String) -> UserInsertBuilder<id, Set> {
+impl<id, email> UserInsertBuilder<id, NotSet, email> {
+    pub fn name_eq(self, value: String) -> UserInsertBuilder<id, Set, email> {
         UserInsertBuilder {
-            email: Some(value),
+            name: Some(value),
             id: self.id,
-            _email: std::marker::PhantomData::<Set>,
+            email: self.email,
+            _name: std::marker::PhantomData::<Set>,
             _id: self._id,
+            _email: self._email,
         }
     }
 }
-
-impl UserInsertBuilder<Set, Set> {
+impl<id, name> UserInsertBuilder<id, name, NotSet> {
+    pub fn email_eq(self, value: String) -> UserInsertBuilder<id, name, Set> {
+        UserInsertBuilder {
+            email: Some(value),
+            id: self.id,
+            name: self.name,
+            _email: std::marker::PhantomData::<Set>,
+            _id: self._id,
+            _name: self._name,
+        }
+    }
+}
+impl UserInsertBuilder<Set, Set, Set> {
     pub async fn insert<'e, E: sqlx::PgExecutor<'e>>(
         self,
         executor: E,
     ) -> Result<User, sqlx::Error> {
         sqlx::query_as!(
             User,
-            "INSERT INTO users(id, email) VALUES ($1, $2) RETURNING id, name, details, email;",
-            self.id, self.email,
+            "INSERT INTO users(id, name, email) VALUES ($1, $2, $3) RETURNING id, name, details, email;",
+            self.id, self.name, self.email,
         )
             .fetch_one(executor)
             .await
     }
 }
+
 
     "#;
 

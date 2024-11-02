@@ -148,7 +148,8 @@ async fn test_insert_users() -> Result<(), String> {
     //     .expect("Could not fetch users");
     let inserted_user = UserDbSet::insert()
         .id_eq("id-3".to_string())
-        .email_eq("steven".to_string())
+        .email_eq("steven@stevenson.com".to_string())
+        .name_eq("steven".to_string())
         .insert(pool)
         .await
         .expect("Could not insert");

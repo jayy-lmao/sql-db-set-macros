@@ -2,7 +2,7 @@ use proc_macro2::Ident;
 use quote::quote;
 use syn::{DeriveInput, Type};
 
-use crate::common::utils::{get_auto_fields, get_key_fields, get_struct_name, get_unique_fields, get_table_name, get_all_fields};
+use crate::common::utils::{get_all_fields, get_auto_fields, get_inner_option_type, get_struct_name, get_table_name };
 pub fn get_insert_builder_struct_name (input: &DeriveInput) -> Ident {
     let struct_name = get_struct_name(input);
      quote::format_ident!("{}InsertBuilder", struct_name)
@@ -14,8 +14,6 @@ pub fn get_insert_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream
     let builder_struct_name = get_insert_builder_struct_name (input);
     let all_fields= get_all_fields(input);
     let auto_fields = get_auto_fields(input);
-    let key_fields = get_key_fields(input);
-    let unique_fields = get_unique_fields(input);
 
 
     let is_not_auto_field = |(field, _): &(&proc_macro2::Ident, &Type)| {
@@ -23,7 +21,11 @@ pub fn get_insert_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream
             .iter()
             .any(|(auto_field, _)| auto_field == field)
     };
-    let all_insert_fields = key_fields.iter().chain(unique_fields.iter())
+
+    let non_nullable_fields = all_fields.iter().filter(|(_,ty)| get_inner_option_type(ty).is_none());
+
+
+    let all_insert_fields = non_nullable_fields
             .filter(|&x| is_not_auto_field(x))
     ;
 
