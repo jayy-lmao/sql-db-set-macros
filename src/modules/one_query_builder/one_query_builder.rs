@@ -114,9 +114,7 @@ pub fn get_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream {
                 .join(" AND ");
 
             format!(
-                "({} OR {})",
-                key_query_builder_fields_where_clause_match,
-                key_query_builder_fields_where_clause_all_null
+                "({key_query_builder_fields_where_clause_match} OR {key_query_builder_fields_where_clause_all_null})"
             )
         };
         let full_where_clause = match variant {

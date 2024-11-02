@@ -17,11 +17,9 @@ pub fn tokenstream_from_string(input: &str) -> Result<proc_macro2::TokenStream, 
 
 pub fn pretty_print_tokenstream(ts: proc_macro2::TokenStream) -> String {
     match parse2::<File>(ts.clone()) {
-        Ok(file) => format!("{}", prettyplease::unparse(&file)),
+        Ok(file) => prettyplease::unparse(&file).to_string(),
         Err(err) => format!(
-            "Failed to parse TokenStream: {}. Stream was {}",
-            err,
-            ts.to_string()
+            "Failed to parse TokenStream: {err}. Stream was {ts}"
         ),
     }
 }

@@ -1,8 +1,6 @@
 use modules::{insert_query_builder, one_query_builder};
 use proc_macro::TokenStream;
 use quote::quote;
-use syn::File;
-use syn::{parse2, Item};
 use syn::{parse_macro_input, DeriveInput};
 
 mod common;
@@ -11,7 +9,7 @@ use modules::dbset;
 use modules::from_row;
 use modules::many_query_builder;
 
-use common::utils::{self, pretty_print_tokenstream};
+use common::utils::{self};
 
 #[proc_macro_derive(DbSet, attributes(unique, dbset, relation, auto, key))]
 pub fn dbset_derive(input: TokenStream) -> TokenStream {
