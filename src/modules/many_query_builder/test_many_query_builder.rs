@@ -10,7 +10,10 @@ pub fn compare_computed_to_expected(input_string: &str, output_string: &str) {
     let out_tokens = get_query_builder(&input_tokens);
     let pretty_out = pretty_print_tokenstream(out_tokens);
     let tokenstream = tokenstream_from_string(output_string);
-    assert!(tokenstream.is_ok(), "Could not parse output: {output_string}");
+    assert!(
+        tokenstream.is_ok(),
+        "Could not parse output: {output_string}"
+    );
     let pretty_expected = pretty_print_tokenstream(tokenstream.expect("couldnt unw"));
     assert_eq!(pretty_out.to_string(), pretty_expected);
 }
