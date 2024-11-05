@@ -32,7 +32,7 @@ pub fn get_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream {
             if key_fields.len() == 1 && key_fields.iter().any(|(ufn, _)| *ufn == field.0) {
                 continue;
             }
-            fields_to_include.push(field)
+            fields_to_include.push(field);
         }
         fields_to_include
     };
