@@ -1,9 +1,10 @@
 use proc_macro2::Ident;
 use quote::quote;
-use syn::{DeriveInput};
+use syn::DeriveInput;
 
 use crate::common::utils::{
-    get_all_fields,  get_dbset_name, get_inner_option_type, get_key_fields, get_struct_name, get_table_name, get_unique_fields
+    get_all_fields, get_dbset_name, get_inner_option_type, get_key_fields, get_struct_name,
+    get_table_name, get_unique_fields,
 };
 pub fn get_one_builder_struct_name(input: &DeriveInput) -> Ident {
     let dbset_name = get_dbset_name(input);
@@ -18,7 +19,6 @@ pub fn get_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream {
     let unique_fields = get_unique_fields(input);
     let all_fields = get_all_fields(input);
 
-
     let non_nullable_fields = key_fields
         .iter()
         .filter(|(_, ty)| get_inner_option_type(ty).is_none());
@@ -28,15 +28,16 @@ pub fn get_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream {
     let all_query_one_fields = key_fields.iter().chain(unique_fields.iter());
 
     // Get builder struct generics
-    let builder_struct_generics = all_required_insert_fields.clone().map(|(field_name, _)| {
-        quote! {
-            #field_name = NotSet,
-        }
-    }).chain(vec![
-        quote! {
+    let builder_struct_generics = all_required_insert_fields
+        .clone()
+        .map(|(field_name, _)| {
+            quote! {
+                #field_name = NotSet,
+            }
+        })
+        .chain(vec![quote! {
             UniqueFields = NotSet,
-        }
-    ]);
+        }]);
 
     let struct_fields = all_query_one_fields
         .clone()
@@ -50,19 +51,14 @@ pub fn get_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream {
 
             quote! { #name: Option< #type_arg >, }
         })
-    .chain(vec![
-        quote! {
+        .chain(vec![quote! {
             _unique_fields: std::marker::PhantomData::<UniqueFields>,
-        }
-    ]);
-
+        }]);
 
     let phantom_struct_fields = all_required_insert_fields.clone().map(|(name, _)| {
         let ph_name = quote::format_ident!("_{}", name);
         quote! { #ph_name: std::marker::PhantomData::<#name>, }
     });
-
-
 
     // Create Builder Struct
     let builder_struct = quote! {
@@ -73,17 +69,23 @@ pub fn get_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream {
     };
 
     // Create new impl
-    let initial_generics = all_required_insert_fields.clone().map(|_| {
-        quote! {
-            NotSet,
-        }
-    }).chain(vec![quote!{NotSet}]);
+    let initial_generics = all_required_insert_fields
+        .clone()
+        .map(|_| {
+            quote! {
+                NotSet,
+            }
+        })
+        .chain(vec![quote! {NotSet}]);
 
-    let initial_struct_fields = all_query_one_fields.clone().map(|(name, _)| {
-        quote! { #name: None, }
-    }).chain(vec![quote!{
-            _unique_fields: std::marker::PhantomData::<NotSet>,
-    }]);
+    let initial_struct_fields = all_query_one_fields
+        .clone()
+        .map(|(name, _)| {
+            quote! { #name: None, }
+        })
+        .chain(vec![quote! {
+                _unique_fields: std::marker::PhantomData::<NotSet>,
+        }]);
 
     let initial_phantom_struct_fields = all_required_insert_fields.clone().map(|(name, _)| {
         let ph_name = quote::format_ident!("_{}", name);
@@ -195,12 +197,18 @@ pub fn get_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream {
 
     // Create complete impl
 
-    let key_fetch_one_method_generics = all_required_insert_fields.clone().map(|(_, _)| {
-        quote! { Set, }
-    }).chain(vec![ quote!{ NotSet }, ]);
-    let unique_fetch_one_method_generics = all_required_insert_fields.clone().map(|(_, _)| {
-        quote! { NotSet, }
-    }).chain(vec![ quote!{ Set }, ]);
+    let key_fetch_one_method_generics = all_required_insert_fields
+        .clone()
+        .map(|(_, _)| {
+            quote! { Set, }
+        })
+        .chain(vec![quote! { NotSet }]);
+    let unique_fetch_one_method_generics = all_required_insert_fields
+        .clone()
+        .map(|(_, _)| {
+            quote! { NotSet, }
+        })
+        .chain(vec![quote! { Set }]);
 
     let all_fields_str = all_fields
         .iter()
@@ -208,47 +216,37 @@ pub fn get_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream {
         .collect::<Vec<_>>()
         .join(", ");
 
+    let key_query_builder_fields_where_clause = key_fields
+        .iter()
+        .enumerate()
+        .map(|(index, (field_name, _))| format!("{} = ${}", field_name, index + 1,))
+        .collect::<Vec<_>>()
+        .join(" AND ");
 
-        let key_query_builder_fields_where_clause = key_fields
-            .iter()
-            .enumerate()
-            .map(|(index, (field_name, _))| {
-                format!(
-                    "{} = ${}",
-                    field_name,
-                    index + 1,
-                )
-            })
-            .collect::<Vec<_>>()
-            .join(" AND ");
+    let unique_query_builder_fields_where_clause = unique_fields
+        .iter()
+        .enumerate()
+        .map(|(index, (field_name, _))| {
+            format!(
+                "({} = ${} OR ${} is null)",
+                field_name,
+                index + 1,
+                index + 1,
+            )
+        })
+        .collect::<Vec<_>>()
+        .join(" AND ");
 
-        let unique_query_builder_fields_where_clause = unique_fields
-            .iter()
-            .enumerate()
-            .map(|(index, (field_name, _))| {
-                format!(
-                    "({} = ${} OR ${} is null)",
-                    field_name,
-                    index + 1,
-                    index + 1,
-                )
-            })
-            .collect::<Vec<_>>()
-            .join(" AND ");
-
-
-
-
-        // let query = format!("INSERT INTO {table_name}({all_insert_fields_str}) VALUES ({all_params}) RETURNING {all_fields_str};");
+    // let query = format!("INSERT INTO {table_name}({all_insert_fields_str}) VALUES ({all_params}) RETURNING {all_fields_str};");
 
     let unique_query_args = unique_fields.clone().into_iter().map(|(name, _)| {
         quote! { self.#name, }
     });
 
     let unique_fetch_one = if !unique_fields.is_empty() {
-    let query = format!("SELECT {all_fields_str} FROM {table_name} WHERE {unique_query_builder_fields_where_clause}");
+        let query = format!("SELECT {all_fields_str} FROM {table_name} WHERE {unique_query_builder_fields_where_clause}");
 
-    quote! {
+        quote! {
 
         impl  #builder_struct_name <#(#unique_fetch_one_method_generics)*> {
                 pub async fn fetch_one<'e, E: sqlx::PgExecutor<'e>>(
@@ -265,31 +263,36 @@ pub fn get_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream {
             }
         }
         }
-    } else {quote!{}};
+    } else {
+        quote! {}
+    };
 
     let key_query_args = key_fields.clone().into_iter().map(|(name, _)| {
         quote! { self.#name, }
     });
 
     let key_fetch_one = if !key_fields.is_empty() {
-    let query = format!("SELECT {all_fields_str} FROM {table_name} WHERE {key_query_builder_fields_where_clause}");
+        let query = format!("SELECT {all_fields_str} FROM {table_name} WHERE {key_query_builder_fields_where_clause}");
 
         quote! {
-        impl  #builder_struct_name <#(#key_fetch_one_method_generics)*> {
-                pub async fn fetch_one<'e, E: sqlx::PgExecutor<'e>>(
-                    self,
-                    executor: E,
-                ) -> Result<#struct_name, sqlx::Error> {
-                    sqlx::query_as!(
-                        #struct_name,
-                        #query,
-                        #(#key_query_args)*
-                    )
-                        .fetch_one(executor)
-                        .await
+            impl  #builder_struct_name <#(#key_fetch_one_method_generics)*> {
+                    pub async fn fetch_one<'e, E: sqlx::PgExecutor<'e>>(
+                        self,
+                        executor: E,
+                    ) -> Result<#struct_name, sqlx::Error> {
+                        sqlx::query_as!(
+                            #struct_name,
+                            #query,
+                            #(#key_query_args)*
+                        )
+                            .fetch_one(executor)
+                            .await
+                }
             }
         }
-    }} else {quote!{}};
+    } else {
+        quote! {}
+    };
 
     let builder_struct_impl = quote! {
         #builder_struct

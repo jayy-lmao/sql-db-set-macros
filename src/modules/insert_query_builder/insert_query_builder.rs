@@ -3,7 +3,8 @@ use quote::quote;
 use syn::{DeriveInput, Type};
 
 use crate::common::utils::{
-    get_all_fields, get_auto_fields, get_dbset_name, get_inner_option_type, get_struct_name, get_table_name
+    get_all_fields, get_auto_fields, get_dbset_name, get_inner_option_type, get_struct_name,
+    get_table_name,
 };
 pub fn get_insert_builder_struct_name(input: &DeriveInput) -> Ident {
     let dbset_name = get_dbset_name(input);
