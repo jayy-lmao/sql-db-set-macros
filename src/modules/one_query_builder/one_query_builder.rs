@@ -165,7 +165,12 @@ pub fn get_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream {
             let remaining_phantom_fill = fill_other_phantom_fields
                 .clone()
                 .filter(|(other_field_name, _)| *other_field_name != field_name)
-                .map(|(_, value)| value);
+                .map(|(_, value)| value).chain( if is_unique_field {vec![]} else {vec![
+                    quote!{ 
+                _unique_fields: std::marker::PhantomData::<NotSet>,
+                    }
+
+                ]});
 
             let type_arg = match inner_field_type {
                 Some(inner) => inner,
@@ -262,7 +267,7 @@ pub fn get_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream {
         }
     } else {quote!{}};
 
-    let key_query_args = all_query_one_fields.clone().map(|(name, _)| {
+    let key_query_args = key_fields.clone().into_iter().map(|(name, _)| {
         quote! { self.#name, }
     });
 

@@ -25,7 +25,8 @@ pub struct User {
     name: String,
     details: Option<String>,
     #[unique]
-    email: String, }
+    email: String, 
+    }
     "#;
 
     let output = r#"
@@ -52,6 +53,7 @@ impl UserDbSetOneQueryBuilder<NotSet, NotSet> {
             id: Some(id),
             email: self.email,
             _id: std::marker::PhantomData::<Set>,
+            _unique_fields: std::marker::PhantomData::<NotSet>,
         }
     }
 }
@@ -72,7 +74,6 @@ impl UserDbSetOneQueryBuilder<Set, NotSet> {
     ) -> Result<User, sqlx::Error> {
         sqlx::query_as!(
             User, "SELECT id, name, details, email FROM users WHERE id = $1", self.id,
-            self.email,
         )
             .fetch_one(executor)
             .await
@@ -244,6 +245,8 @@ impl<user_id> FavouritedProductDbSetOneQueryBuilder<NotSet, user_id, NotSet> {
             user_id: self.user_id,
             _product_id: std::marker::PhantomData::<Set>,
             _user_id: self._user_id,
+            _unique_fields: std::marker::PhantomData::<NotSet>,
+
         }
     }
 }
@@ -257,6 +260,7 @@ impl<product_id> FavouritedProductDbSetOneQueryBuilder<product_id, NotSet, NotSe
             product_id: self.product_id,
             _user_id: std::marker::PhantomData::<Set>,
             _product_id: self._product_id,
+            _unique_fields: std::marker::PhantomData::<NotSet>,
          }
      }
  }
