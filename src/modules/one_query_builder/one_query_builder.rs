@@ -1,43 +1,201 @@
+use proc_macro2::Ident;
 use quote::quote;
-use syn::DeriveInput;
+use syn::{DeriveInput};
 
-use crate::utils;
-
-use super::utils::{
-    get_one_query_builder_key_fields, get_one_query_builder_key_methods,
-    get_one_query_builder_struct_fields_initial, get_one_query_builder_struct_fieldsl,
-    get_one_query_builder_struct_name, get_one_query_builder_unique_fields,
-    get_one_query_builder_unique_methods,
+use crate::common::utils::{
+    get_all_fields,  get_dbset_name, get_inner_option_type, get_key_fields, get_struct_name, get_table_name, get_unique_fields
 };
-
-pub enum Variants {
-    UniqueFieldsExist,
-    KeyFieldsExist,
-    KeyFieldsAndUniqueFieldsExist,
-    NeitherExist,
+pub fn get_one_builder_struct_name(input: &DeriveInput) -> Ident {
+    let dbset_name = get_dbset_name(input);
+    quote::format_ident!("{}OneQueryBuilder", dbset_name)
 }
 
 pub fn get_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream {
-    let struct_name = utils::get_struct_name(input);
-    let table_name = utils::get_table_name(input);
-    let query_builder_struct_name = get_one_query_builder_struct_name(input);
-    let query_builder_key_fields = get_one_query_builder_key_fields(input);
-    let query_builder_unique_fields = get_one_query_builder_unique_fields(input);
-    let query_builder_struct_fields = get_one_query_builder_struct_fieldsl(input);
-    let query_builder_struct_fields_initial = get_one_query_builder_struct_fields_initial(input);
-    let query_builder_unique_methods = get_one_query_builder_unique_methods(input);
-    let query_builder_key_methods = get_one_query_builder_key_methods(input);
-    let all_fields = utils::get_all_fields(input);
+    let table_name = get_table_name(input);
+    let struct_name = get_struct_name(input);
+    let builder_struct_name = get_one_builder_struct_name(input);
+    let key_fields = get_key_fields(input);
+    let unique_fields = get_unique_fields(input);
+    let all_fields = get_all_fields(input);
 
-    let variant = match (
-        !query_builder_unique_fields.is_empty(),
-        !query_builder_key_fields.is_empty(),
-    ) {
-        (true, true) => Variants::KeyFieldsAndUniqueFieldsExist,
-        (false, true) => Variants::KeyFieldsExist,
-        (true, false) => Variants::UniqueFieldsExist,
-        _ => Variants::NeitherExist,
+
+    let non_nullable_fields = key_fields
+        .iter()
+        .filter(|(_, ty)| get_inner_option_type(ty).is_none());
+
+    let all_required_insert_fields = non_nullable_fields;
+
+    let all_query_one_fields = key_fields.iter().chain(unique_fields.iter());
+
+    // Get builder struct generics
+    let builder_struct_generics = all_required_insert_fields.clone().map(|(field_name, _)| {
+        quote! {
+            #field_name = NotSet,
+        }
+    }).chain(vec![
+        quote! {
+            UniqueFields = NotSet,
+        }
+    ]);
+
+    let struct_fields = all_query_one_fields
+        .clone()
+        .map(|(name, ty)| {
+            let inner_field_type = get_inner_option_type(ty);
+
+            let type_arg = match inner_field_type {
+                Some(inner) => inner,
+                None => ty,
+            };
+
+            quote! { #name: Option< #type_arg >, }
+        })
+    .chain(vec![
+        quote! {
+            _unique_fields: std::marker::PhantomData::<UniqueFields>,
+        }
+    ]);
+
+
+    let phantom_struct_fields = all_required_insert_fields.clone().map(|(name, _)| {
+        let ph_name = quote::format_ident!("_{}", name);
+        quote! { #ph_name: std::marker::PhantomData::<#name>, }
+    });
+
+
+
+    // Create Builder Struct
+    let builder_struct = quote! {
+        pub struct #builder_struct_name <#(#builder_struct_generics)*> {
+            #(#struct_fields)*
+            #(#phantom_struct_fields)*
+        }
     };
+
+    // Create new impl
+    let initial_generics = all_required_insert_fields.clone().map(|_| {
+        quote! {
+            NotSet,
+        }
+    }).chain(vec![quote!{NotSet}]);
+
+    let initial_struct_fields = all_query_one_fields.clone().map(|(name, _)| {
+        quote! { #name: None, }
+    }).chain(vec![quote!{
+            _unique_fields: std::marker::PhantomData::<NotSet>,
+    }]);
+
+    let initial_phantom_struct_fields = all_required_insert_fields.clone().map(|(name, _)| {
+        let ph_name = quote::format_ident!("_{}", name);
+        quote! { #ph_name: std::marker::PhantomData::<NotSet>, }
+    });
+
+    let new_impl = quote! {
+            pub fn new() -> #builder_struct_name <#(#initial_generics)*>  {
+                Self {
+                    #(#initial_struct_fields)*
+                    #(#initial_phantom_struct_fields)*
+                }
+            }
+    };
+
+    // Create add value functions
+    let fill_other_fields = all_query_one_fields
+        .clone()
+        .map(|(name, _)| (name, quote! { #name: self.#name, }));
+
+    let fill_other_phantom_fields = all_required_insert_fields.clone().map(|(name, _)| {
+        let ph_name = quote::format_ident!("_{}", name);
+        (name, quote! { #ph_name: self.#ph_name, })
+    });
+
+    let builder_methods = all_query_one_fields.clone()
+        .map(|(field_name, field_type)| {
+            let is_unique_field = unique_fields.iter().any(|uf| uf.0 == *field_name);
+            let method_name = quote::format_ident!("{}_eq", field_name);
+            let ph_name = quote::format_ident!("_{}", field_name);
+
+            let inner_field_type= get_inner_option_type(field_type);
+
+            let ph_field =
+            if inner_field_type.is_none() {
+                if is_unique_field  {
+                quote! { 
+                    _unique_fields: std::marker::PhantomData::<Set>,
+                } 
+
+                } else {
+                quote! { #ph_name: std::marker::PhantomData::<Set>, } 
+                }
+            } else { 
+                quote! { }
+            };
+            
+            let remaining_fill = fill_other_fields
+                .clone()
+                .filter(|(other_field_name, _)| *other_field_name != field_name)
+                .map(|(_, value)| value);
+
+
+            let pre_impl_generics_in = all_required_insert_fields.clone().map(|(gen_name, _)|{
+                if gen_name != field_name {
+                    return quote!{ #gen_name, }
+                }
+                quote!{  }
+            });
+
+            let generics_in = all_required_insert_fields.clone().map(|(gen_name, _)|{
+                if gen_name != field_name {
+                    return quote!{ #gen_name, }
+                }
+                quote!{ NotSet, }
+            }).chain(vec![quote!{NotSet}]);
+            
+            let generics_out = all_required_insert_fields.clone().map(|(gen_name, _)|{
+                if gen_name != field_name {
+                    return quote!{ #gen_name, }
+                }
+                quote!{ Set, }
+                }).chain( if is_unique_field {
+                    vec![quote!{Set}]
+                } else {
+                    vec![quote!{NotSet}]
+                });
+
+            let remaining_phantom_fill = fill_other_phantom_fields
+                .clone()
+                .filter(|(other_field_name, _)| *other_field_name != field_name)
+                .map(|(_, value)| value);
+
+            let type_arg = match inner_field_type {
+                Some(inner) => inner,
+                None => field_type,
+            };
+
+            quote! {
+                impl <#(#pre_impl_generics_in)*> #builder_struct_name <#(#generics_in)*> {
+                        pub fn #method_name(self, #field_name: #type_arg) -> #builder_struct_name <#(#generics_out)*>  {
+                            #builder_struct_name  {
+                                #field_name: Some(#field_name),
+                                #(#remaining_fill)*
+                                #ph_field
+                                #(#remaining_phantom_fill)*
+
+                            }
+                        }
+
+            }
+            }
+        });
+
+    // Create complete impl
+
+    let key_fetch_one_method_generics = all_required_insert_fields.clone().map(|(_, _)| {
+        quote! { Set, }
+    }).chain(vec![ quote!{ NotSet }, ]);
+    let unique_fetch_one_method_generics = all_required_insert_fields.clone().map(|(_, _)| {
+        quote! { NotSet, }
+    }).chain(vec![ quote!{ Set }, ]);
 
     let all_fields_str = all_fields
         .iter()
@@ -45,8 +203,21 @@ pub fn get_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream {
         .collect::<Vec<_>>()
         .join(", ");
 
-    let query_builder_unique_fetch = {
-        let unique_query_builder_fields_where_clause = query_builder_unique_fields
+
+        let key_query_builder_fields_where_clause = key_fields
+            .iter()
+            .enumerate()
+            .map(|(index, (field_name, _))| {
+                format!(
+                    "{} = ${}",
+                    field_name,
+                    index + 1,
+                )
+            })
+            .collect::<Vec<_>>()
+            .join(" AND ");
+
+        let unique_query_builder_fields_where_clause = unique_fields
             .iter()
             .enumerate()
             .map(|(index, (field_name, _))| {
@@ -54,214 +225,79 @@ pub fn get_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream {
                     "({} = ${} OR ${} is null)",
                     field_name,
                     index + 1,
-                    index + 1
+                    index + 1,
                 )
             })
             .collect::<Vec<_>>()
             .join(" AND ");
 
-        let full_where_clause = match variant {
-            Variants::KeyFieldsAndUniqueFieldsExist | Variants::UniqueFieldsExist => {
-                format!("WHERE {unique_query_builder_fields_where_clause}")
-            }
-            _ => String::new(),
-        };
-
-        let query = format!("SELECT {all_fields_str} FROM {table_name} {full_where_clause}");
-
-        let query_args = query_builder_unique_fields
-            .iter()
-            .map(|(field_name, _field_type)| {
-                quote! {
-                    self.#field_name,
-                }
-            });
-
-        let res = quote! {
-            pub async fn fetch_one<'e, E: sqlx::PgExecutor<'e>>(
-                self,
-                executor: E,
-            ) -> Result<#struct_name, sqlx::Error> {
-
-                sqlx::query_as!(
-                    #struct_name,
-                    #query,
-                    #(#query_args)*
-                )
-                .fetch_one(executor)
-                .await
-            }
 
 
-        };
-        res
-    };
 
-    let query_builder_key_fetch = {
-        let key_where_clause = {
-            let key_query_builder_fields_where_clause_match = query_builder_key_fields
-                .iter()
-                .enumerate()
-                .map(|(index, (field_name, _))| format!("{} = ${}", field_name, index + 1))
-                .collect::<Vec<_>>()
-                .join(" AND ");
+        // let query = format!("INSERT INTO {table_name}({all_insert_fields_str}) VALUES ({all_params}) RETURNING {all_fields_str};");
 
-            let key_query_builder_fields_where_clause_all_null = query_builder_key_fields
-                .iter()
-                .enumerate()
-                .map(|(index, (_, _))| format!("${} is null", index + 1))
-                .collect::<Vec<_>>()
-                .join(" AND ");
+    let unique_query_args = unique_fields.clone().into_iter().map(|(name, _)| {
+        quote! { self.#name, }
+    });
 
-            format!(
-                "({key_query_builder_fields_where_clause_match} OR {key_query_builder_fields_where_clause_all_null})"
-            )
-        };
-        let full_where_clause = match variant {
-            Variants::KeyFieldsAndUniqueFieldsExist | Variants::KeyFieldsExist => {
-                format!("WHERE {key_where_clause}")
-            }
-            _ => String::new(),
-        };
-
-        let query = format!("SELECT {all_fields_str} FROM {table_name} {full_where_clause}");
-
-        let query_args = query_builder_key_fields
-            .iter()
-            .map(|(field_name, _field_type)| {
-                quote! {
-                    self.#field_name,
-                }
-            });
-
-        let res = quote! {
-            pub async fn fetch_one<'e, E: sqlx::PgExecutor<'e>>(
-                self,
-                executor: E,
-            ) -> Result<#struct_name, sqlx::Error> {
-
-                sqlx::query_as!(
-                    #struct_name,
-                    #query,
-                    #(#query_args)*
-                )
-                .fetch_one(executor)
-                .await
-            }
-
-
-        };
-        res
-    };
-
-    let generics = match variant {
-        Variants::UniqueFieldsExist => quote! { <UniqueFields = NotSet> },
-        Variants::KeyFieldsExist => quote! {<KeyFields = NotSet> },
-        Variants::KeyFieldsAndUniqueFieldsExist => {
-            quote! { <KeyFields = NotSet, UniqueFields = NotSet> }
-        }
-        Variants::NeitherExist => quote! {},
-    };
-
-    let generics_initial = match variant {
-        Variants::UniqueFieldsExist => quote! { <NotSet> },
-        Variants::KeyFieldsExist => quote! {<NotSet> },
-        Variants::KeyFieldsAndUniqueFieldsExist => {
-            quote! { <NotSet, NotSet> }
-        }
-        Variants::NeitherExist => quote! {},
-    };
-
-    let key_phantom_field = match variant {
-        Variants::KeyFieldsAndUniqueFieldsExist | Variants::KeyFieldsExist => {
-            quote! { , _key_fields: std::marker::PhantomData::<KeyFields>}
-        }
-        _ => quote! {},
-    };
-
-    let unique_phantom_field = match variant {
-        Variants::KeyFieldsAndUniqueFieldsExist | Variants::UniqueFieldsExist => {
-            quote! { , _unique_fields: std::marker::PhantomData::<UniqueFields> }
-        }
-        _ => quote! {},
-    };
-
-    let intial_key_phantom_field = match variant {
-        Variants::KeyFieldsAndUniqueFieldsExist | Variants::KeyFieldsExist => {
-            quote! {, _key_fields: std::marker::PhantomData::<NotSet>}
-        }
-        _ => quote! {},
-    };
-
-    let intial_unique_phantom_field = match variant {
-        Variants::KeyFieldsAndUniqueFieldsExist | Variants::UniqueFieldsExist => {
-            quote! {, _unique_fields: std::marker::PhantomData::<NotSet>}
-        }
-        _ => quote! {},
-    };
-
-    let unique_set_impl = if !query_builder_unique_fields.is_empty() {
-        let unique_set_generic = if !query_builder_key_fields.is_empty() {
-            quote! {
-                <NotSet,Set>
-            }
-        } else {
-            quote! {
-                <Set>
-            }
-        };
-
-        quote! {
-        impl #query_builder_struct_name #unique_set_generic {
-            #query_builder_unique_fetch
-        }}
-    } else {
-        quote! {}
-    };
-    let key_set_impl = if !query_builder_key_fields.is_empty() {
-        let key_set_generic = if !query_builder_unique_fields.is_empty() {
-            quote! {
-                <Set,NotSet>
-            }
-        } else {
-            quote! {
-                <Set>
-            }
-        };
-        quote! {
-
-        impl #query_builder_struct_name #key_set_generic {
-            #query_builder_key_fetch
-        }
-        }
-    } else {
-        quote! {}
-    };
+    let unique_fetch_one = if !unique_fields.is_empty() {
+    let query = format!("SELECT {all_fields_str} FROM {table_name} WHERE {unique_query_builder_fields_where_clause}");
 
     quote! {
 
-        #[derive(Debug)]
-        pub struct #query_builder_struct_name #generics  {
-            #(#query_builder_struct_fields),*
-            #key_phantom_field
-            #unique_phantom_field
-        }
-
-        impl #query_builder_struct_name {
-            pub fn new() -> #query_builder_struct_name #generics_initial {
-            Self {
-                #(#query_builder_struct_fields_initial),*
-                #intial_key_phantom_field
-                #intial_unique_phantom_field
-                }
+        impl  #builder_struct_name <#(#unique_fetch_one_method_generics)*> {
+                pub async fn fetch_one<'e, E: sqlx::PgExecutor<'e>>(
+                    self,
+                    executor: E,
+                ) -> Result<#struct_name, sqlx::Error> {
+                    sqlx::query_as!(
+                        #struct_name,
+                        #query,
+                        #(#unique_query_args)*
+                    )
+                        .fetch_one(executor)
+                        .await
             }
         }
-        impl #query_builder_struct_name #generics_initial {
-            #(#query_builder_unique_methods)*
-            #(#query_builder_key_methods )*
+        }
+    } else {quote!{}};
+
+    let key_query_args = all_query_one_fields.clone().map(|(name, _)| {
+        quote! { self.#name, }
+    });
+
+    let key_fetch_one = if !key_fields.is_empty() {
+    let query = format!("SELECT {all_fields_str} FROM {table_name} WHERE {key_query_builder_fields_where_clause}");
+
+        quote! {
+        impl  #builder_struct_name <#(#key_fetch_one_method_generics)*> {
+                pub async fn fetch_one<'e, E: sqlx::PgExecutor<'e>>(
+                    self,
+                    executor: E,
+                ) -> Result<#struct_name, sqlx::Error> {
+                    sqlx::query_as!(
+                        #struct_name,
+                        #query,
+                        #(#key_query_args)*
+                    )
+                        .fetch_one(executor)
+                        .await
+            }
+        }
+    }} else {quote!{}};
+
+    let builder_struct_impl = quote! {
+        #builder_struct
+
+        impl #builder_struct_name {
+            #new_impl
         }
 
-        #unique_set_impl
-        #key_set_impl
-    }
+        #(#builder_methods)*
+
+        #key_fetch_one
+        #unique_fetch_one
+    };
+
+    builder_struct_impl
 }

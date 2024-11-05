@@ -11,14 +11,14 @@ Can currently:
 See the following: 
 
 TODO:
-- [ ] Limit / Offset
+- [ ] Allow for multiple-field primary keys for query-one
+- [ ] Allow query many by one key field when there are two key fields
 - [ ] Update
 - [ ] Delete
-- [ ] Allow for multiple-field primary keys for query-one
-- [ ] create a version of https://github.com/jayy-lmao/sql-gen for generating these
-- [ ] Figure out what I will do with query many multiple filed
-
-
+- [ ] Release early version!
+- [ ] Limit / Offset
+- [ ] Create a version of https://github.com/jayy-lmao/sql-gen for generating these
+- [ ] Do more than just `eq` to match fields (map of ops for each type)
 
 ```rs
 #[derive(DbSet, Debug)] // DbSet also implements sqlx::FromRow by default

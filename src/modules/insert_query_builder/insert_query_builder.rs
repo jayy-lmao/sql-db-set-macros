@@ -3,11 +3,11 @@ use quote::quote;
 use syn::{DeriveInput, Type};
 
 use crate::common::utils::{
-    get_all_fields, get_auto_fields, get_inner_option_type, get_struct_name, get_table_name,
+    get_all_fields, get_auto_fields, get_dbset_name, get_inner_option_type, get_struct_name, get_table_name
 };
 pub fn get_insert_builder_struct_name(input: &DeriveInput) -> Ident {
-    let struct_name = get_struct_name(input);
-    quote::format_ident!("{}InsertBuilder", struct_name)
+    let dbset_name = get_dbset_name(input);
+    quote::format_ident!("{}InsertBuilder", dbset_name)
 }
 
 pub fn get_insert_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream {

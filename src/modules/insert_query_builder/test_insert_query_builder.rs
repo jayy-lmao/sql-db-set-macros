@@ -28,27 +28,27 @@ pub struct Account {
     "#;
 
     let output = r#"
-pub struct AccountInsertBuilder<email = NotSet> {
+pub struct AccountDbSetInsertBuilder<email = NotSet> {
     email: Option<String>,
     _email: std::marker::PhantomData<email>,
 }
-impl AccountInsertBuilder {
-    pub fn new() -> AccountInsertBuilder<NotSet> {
+impl AccountDbSetInsertBuilder {
+    pub fn new() -> AccountDbSetInsertBuilder<NotSet> {
         Self {
             email: None,
             _email: std::marker::PhantomData::<NotSet>,
         }
     }
 }
-impl AccountInsertBuilder<NotSet> {
-    pub fn email(self, email: String) -> AccountInsertBuilder<Set> {
-        AccountInsertBuilder {
+impl AccountDbSetInsertBuilder<NotSet> {
+    pub fn email(self, email: String) -> AccountDbSetInsertBuilder<Set> {
+        AccountDbSetInsertBuilder {
             email: Some(email),
             _email: std::marker::PhantomData::<Set>,
         }
     }
 }
-impl AccountInsertBuilder<Set> {
+impl AccountDbSetInsertBuilder<Set> {
     pub async fn insert<'e, E: sqlx::PgExecutor<'e>>(
         self,
         executor: E,
@@ -82,7 +82,7 @@ pub struct User {
     "#;
 
     let output = r#"
-pub struct UserInsertBuilder<id = NotSet, name = NotSet, email = NotSet> {
+pub struct UserDbSetInsertBuilder<id = NotSet, name = NotSet, email = NotSet> {
     id: Option<String>,
     name: Option<String>,
     details: Option<String>,
@@ -91,8 +91,8 @@ pub struct UserInsertBuilder<id = NotSet, name = NotSet, email = NotSet> {
     _name: std::marker::PhantomData<name>,
     _email: std::marker::PhantomData<email>,
 }
-impl UserInsertBuilder {
-    pub fn new() -> UserInsertBuilder<NotSet, NotSet, NotSet> {
+impl UserDbSetInsertBuilder {
+    pub fn new() -> UserDbSetInsertBuilder<NotSet, NotSet, NotSet> {
         Self {
             id: None,
             name: None,
@@ -104,9 +104,9 @@ impl UserInsertBuilder {
         }
     }
 }
-impl<name, email> UserInsertBuilder<NotSet, name, email> {
-    pub fn id(self, id: String) -> UserInsertBuilder<Set, name, email> {
-        UserInsertBuilder {
+impl<name, email> UserDbSetInsertBuilder<NotSet, name, email> {
+    pub fn id(self, id: String) -> UserDbSetInsertBuilder<Set, name, email> {
+        UserDbSetInsertBuilder {
             id: Some(id),
             name: self.name,
             details: self.details,
@@ -117,9 +117,9 @@ impl<name, email> UserInsertBuilder<NotSet, name, email> {
         }
     }
 }
-impl<id, email> UserInsertBuilder<id, NotSet, email> {
-    pub fn name(self, name: String) -> UserInsertBuilder<id, Set, email> {
-        UserInsertBuilder {
+impl<id, email> UserDbSetInsertBuilder<id, NotSet, email> {
+    pub fn name(self, name: String) -> UserDbSetInsertBuilder<id, Set, email> {
+        UserDbSetInsertBuilder {
             name: Some(name),
             id: self.id,
             details: self.details,
@@ -130,9 +130,9 @@ impl<id, email> UserInsertBuilder<id, NotSet, email> {
         }
     }
 }
-impl<id,name, email> UserInsertBuilder<id, name, email> {
-    pub fn details(self, details: String) -> UserInsertBuilder<id, name, email> {
-        UserInsertBuilder {
+impl<id,name, email> UserDbSetInsertBuilder<id, name, email> {
+    pub fn details(self, details: String) -> UserDbSetInsertBuilder<id, name, email> {
+        UserDbSetInsertBuilder {
             details: Some(details),
             id: self.id,
             name: self.name,
@@ -143,9 +143,9 @@ impl<id,name, email> UserInsertBuilder<id, name, email> {
         }
     }
 }
-impl<id, name> UserInsertBuilder<id, name, NotSet> {
-    pub fn email(self, email: String) -> UserInsertBuilder<id, name, Set> {
-        UserInsertBuilder {
+impl<id, name> UserDbSetInsertBuilder<id, name, NotSet> {
+    pub fn email(self, email: String) -> UserDbSetInsertBuilder<id, name, Set> {
+        UserDbSetInsertBuilder {
             email: Some(email),
             id: self.id,
             name: self.name,
@@ -156,7 +156,7 @@ impl<id, name> UserInsertBuilder<id, name, NotSet> {
         }
     }
 }
-impl UserInsertBuilder<Set, Set, Set> {
+impl UserDbSetInsertBuilder<Set, Set, Set> {
     pub async fn insert<'e, E: sqlx::PgExecutor<'e>>(
         self,
         executor: E,
