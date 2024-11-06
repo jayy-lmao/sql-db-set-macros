@@ -4,7 +4,7 @@ on: [push, pull_request]
 
 jobs:
   unit-tests:
-    name: Set up and Cache
+    name: Unit tests
     runs-on: ubuntu-latest
     outputs:
       cache-hit: ${{ steps.cache.outputs.cache-hit }}
@@ -28,7 +28,7 @@ jobs:
         run: cargo nextest run --release
 
   integration-tests:
-    name: Set up and Cache
+    name: Integration tests
     runs-on: ubuntu-latest
     outputs:
       cache-hit: ${{ steps.cache.outputs.cache-hit }}
