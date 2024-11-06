@@ -3,9 +3,7 @@ name: Rust CI
 on: [push, pull_request]
 
 jobs:
-
-
-  setup:
+  unit-tests:
     name: Set up and Cache
     runs-on: ubuntu-latest
     outputs:
@@ -29,8 +27,34 @@ jobs:
       - name: Run unit tests from root
         run: cargo nextest run --release
 
+  integration-tests:
+    name: Set up and Cache
+    runs-on: ubuntu-latest
+    outputs:
+      cache-hit: ${{ steps.cache.outputs.cache-hit }}
+    env:
+      CARGO_TERM_COLOR: always
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
       - name: Run integration tests in `tests`
-        run: |
-          cd tests
+        run: cd tests
+
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2.7.5
+            
+      - name: Build project
+        run: cargo build --release
+
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: nextest
+
+      - name: Run unit tests from root
+        run: cargo nextest run --release
+
+      - name: Run integration tests in `tests`
+        run: 
           TOKIO_WORKER_THREADS=1 cargo nextest run -j 1 --release
 
