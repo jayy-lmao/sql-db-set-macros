@@ -1,5 +1,7 @@
 ## Name pending (currently DB sets)
 
+https://crates.io/crates/db-set-macros
+
 Inpsired a little bit by Toasty rs and my work on sql-gen.
 Idea is to implement the most common SQLX queries, but allow you to still ultimately use SQLX for anything more complex than a basic query.
 

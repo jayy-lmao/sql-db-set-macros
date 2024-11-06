@@ -22,11 +22,15 @@ jobs:
       - name: Build project
         run: cargo build --release
 
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: nextest
+
       - name: Run unit tests from root
-        run: cargo test --release
+        run: cargo nextest run 
 
       - name: Run integration tests in `tests`
         run: |
           cd tests
-          cargo test --release
+          TOKIO_WORKER_THREADS=1 cargo nextest run -j 1
 
