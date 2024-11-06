@@ -50,7 +50,7 @@ impl UserDbSetManyQueryBuilder {
         self.details = Some(value);
         self
     }
-    pub async fn fetch<'e, E: sqlx::PgExecutor<'e>>(
+    pub async fn fetch_all<'e, E: sqlx::PgExecutor<'e>>(
         self,
         executor: E,
     ) -> Result<Vec<User>, sqlx::Error> {
@@ -96,7 +96,7 @@ impl FavouritedProductDbSetManyQueryBuilder {
         }
     }
 
-    pub async fn fetch<'e, E: sqlx::PgExecutor<'e>>(
+    pub async fn fetch_all<'e, E: sqlx::PgExecutor<'e>>(
         self,
         executor: E,
     ) -> Result<Vec<User>, sqlx::Error> {

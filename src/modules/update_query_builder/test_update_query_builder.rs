@@ -14,7 +14,6 @@ pub fn compare_computed_to_expected(input_string: &str, output_string: &str) {
     assert_eq!(pretty_out.to_string(), pretty_expected);
 }
 
-#[ignore]
 #[test]
 fn can_parse_user_struct_with_unique_and_auto_key_into_one_builder() -> Result<(), String> {
     let input_str = r#"
@@ -28,35 +27,31 @@ pub struct Account {
     "#;
 
     let output = r#"
-pub struct AccountDbSetUpdateBuilder<updatable = NotSet> {
+pub struct AccountDbSetUpdateBuilder {}
+pub struct AccountDbSetUpdateBuilderWithData {
     updatable: Account,
-    _updatable: std::marker::PhantomData<updatable>,
 }
 impl AccountDbSetUpdateBuilder {
-    pub fn new() -> AccountDbSetUpdateBuilder<NotSet> {
-        Self {
-            updatable: None,
-            _updatable: std::marker::PhantomData::<updatable>,
+    pub fn new() -> AccountDbSetUpdateBuilder {
+        Self {}
+    }
+}
+impl AccountDbSetUpdateBuilder {
+    pub fn data(self, value: Account) -> AccountDbSetUpdateBuilderWithData {
+        AccountDbSetUpdateBuilderWithData {
+            updatable: value,
         }
     }
 }
-impl AccountDbSetUpdateBuilder<NotSet> {
-    pub fn data(self, value: Account) -> AccountDbSetUpdateBuilder<Set> {
-        AccountDbSetUpdateBuilder {
-            updatable: Some(value),
-            _updatable: std::marker::PhantomData::<Set>,
-        }
-    }
-}
-impl AccountDbSetUpdateBuilder<Set> {
+impl AccountDbSetUpdateBuilderWithData {
     pub async fn update<'e, E: sqlx::PgExecutor<'e>>(
         self,
         executor: E,
     ) -> Result<Account, sqlx::Error> {
-        sqlx::query_as!(Account, "UPDATE users
-        SET email = $1
-        WHERE id = $2
-        ;", self.email,self.id).fetch_one(executor).await
+
+        sqlx::query_as!(Account, "UPDATE users SET email = $2 WHERE id = $1 RETURNING id, email;",
+            self.updatable.email,
+        ).fetch_one(executor).await
     }
 }
 
@@ -81,33 +76,30 @@ pub struct User {
     "#;
 
     let output = r#"
-pub struct UserDbSetUpdateBuilder<updatable = NotSet> {
+pub struct UserDbSetUpdateBuilder {}
+pub struct UserDbSetUpdateBuilderWithData {
     updatable: User,
-    _updatable: std::marker::PhantomData<updatable>,
+}
+
+impl UserDbSetUpdateBuilder {
+    pub fn new() -> UserDbSetUpdateBuilder {
+        Self { }
+    }
 }
 impl UserDbSetUpdateBuilder {
-    pub fn new() -> UserDbSetUpdateBuilder<NotSet> {
-        Self {
-            updatable: None,
-            _updatable: std::marker::PhantomData::<updatable>,
+    pub fn data(self, value: User) -> UserDbSetUpdateBuilderWithData {
+        UserDbSetUpdateBuilderWithData {
+            updatable: value,
         }
     }
 }
-impl UserDbSetUpdateBuilder<NotSet> {
-    pub fn data(self, value: User) -> UserDbSetUpdateBuilder<Set> {
-        UserDbSetUpdateBuilder {
-            updatable: Some(value),
-            _updatable: std::marker::PhantomData::<Set>,
-        }
-    }
-}
-impl UserDbSetUpdateBuilder<Set> {
+impl UserDbSetUpdateBuilderWithData {
     pub async fn update<'e, E: sqlx::PgExecutor<'e>>(
         self,
         executor: E,
     ) -> Result<User, sqlx::Error> {
         sqlx::query_as!(
-            User, "UPDATE users SET name = $2, details = $3, email = $4 WHERE id = $1;",
+            User, "UPDATE users SET name = $2, details = $3, email = $4 WHERE id = $1 RETURNING id, name, details, email;",
             self.updatable.id, self.updatable.name, self.updatable.details, self.updatable.email,
         )
             .fetch_one(executor)

@@ -3,8 +3,8 @@ use quote::quote;
 use syn::{DeriveInput, Type};
 
 use crate::common::utils::{
-    get_all_fields, get_auto_fields, get_dbset_name, get_inner_option_type, get_key_fields,
-    get_struct_name, get_table_name,
+    get_all_fields, get_auto_fields, get_dbset_name, get_key_fields, get_struct_name,
+    get_table_name,
 };
 pub fn get_update_builder_struct_name(input: &DeriveInput) -> Ident {
     let dbset_name = get_dbset_name(input);
@@ -17,6 +17,11 @@ pub fn get_update_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream
     let builder_struct_name = get_update_builder_struct_name(input);
     let all_fields = get_all_fields(input);
     let auto_fields = get_auto_fields(input);
+    let all_fields_str = all_fields
+        .iter()
+        .map(|(field_name, _)| field_name.to_string())
+        .collect::<Vec<_>>()
+        .join(", ");
 
     let is_not_auto_field = |(field, _): &(&proc_macro2::Ident, &Type)| {
         !auto_fields
@@ -25,30 +30,27 @@ pub fn get_update_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream
     };
 
     let all_update_fields = all_fields.iter().filter(|&x| is_not_auto_field(x));
+    let builder_struct_name_with_data = quote::format_ident!("{}WithData", builder_struct_name);
 
     // Create Builder Struct
     let builder_struct = quote! {
-        pub struct #builder_struct_name <updatable = NotSet> {
+        pub struct #builder_struct_name  {}
+        pub struct #builder_struct_name_with_data  {
              updatable: #struct_name,
-             _updatable: std::marker::PhantomData::<updatable>,
         }
     };
 
     let new_impl = quote! {
-            pub fn new() -> #builder_struct_name <NotSet>  {
-                Self {
-                    updatable: None,
-                     _updatable: std::marker::PhantomData::<updatable>,
-                }
+            pub fn new() -> #builder_struct_name  {
+                Self {}
             }
     };
 
     let builder_method = quote! {
-        impl #builder_struct_name <NotSet> {
-                pub fn data(self, value: #struct_name) -> #builder_struct_name <Set>  {
-                    #builder_struct_name  {
-                        updatable: Some(value),
-                         _updatable: std::marker::PhantomData::<Set>,
+        impl #builder_struct_name {
+                pub fn data(self, value: #struct_name) -> #builder_struct_name_with_data  {
+                    #builder_struct_name_with_data  {
+                        updatable: value,
 
                     }
                 }
@@ -75,7 +77,7 @@ pub fn get_update_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream
         .join(", ");
 
     let query = format!(
-        "UPDATE {table_name} SET {set_fields} WHERE {query_builder_where_fields} RETURNING *;"
+        "UPDATE {table_name} SET {set_fields} WHERE {query_builder_where_fields} RETURNING {all_fields_str};"
     );
 
     let query_args = all_update_fields.clone().map(|(name, _)| {
@@ -83,7 +85,7 @@ pub fn get_update_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream
     });
 
     let update_method = quote! {
-        impl  #builder_struct_name <Set> {
+        impl  #builder_struct_name_with_data  {
                 pub async fn update<'e, E: sqlx::PgExecutor<'e>>(
                     self,
                     executor: E,

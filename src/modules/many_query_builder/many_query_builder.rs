@@ -73,7 +73,7 @@ pub fn get_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream {
         });
 
         let res = quote! {
-            pub async fn fetch<'e, E: sqlx::PgExecutor<'e>>(
+            pub async fn fetch_all<'e, E: sqlx::PgExecutor<'e>>(
                 self,
                 executor: E,
             ) -> Result<Vec<User>, sqlx::Error> {

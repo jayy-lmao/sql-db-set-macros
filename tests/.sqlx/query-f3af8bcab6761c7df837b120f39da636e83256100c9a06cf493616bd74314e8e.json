@@ -1,26 +1,26 @@
 {
   "db_name": "PostgreSQL",
-  "query": "UPDATE users SET name = $2, details = $3, email = $4 WHERE id = $1 RETURNING *;",
+  "query": "UPDATE users SET name = $2, details = $3, email = $4 WHERE id = $1 RETURNING id, name, details, email;",
   "describe": {
     "columns": [
       {
         "ordinal": 0,
-        "name": "name",
-        "type_info": "Text"
-      },
-      {
-        "ordinal": 1,
         "name": "id",
         "type_info": "Text"
       },
       {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Text"
+      },
+      {
         "ordinal": 2,
-        "name": "email",
+        "name": "details",
         "type_info": "Varchar"
       },
       {
         "ordinal": 3,
-        "name": "details",
+        "name": "email",
         "type_info": "Varchar"
       }
     ],
@@ -35,9 +35,9 @@
     "nullable": [
       false,
       false,
-      false,
-      true
+      true,
+      false
     ]
   },
-  "hash": "35da43e71ee257f458daea68eb37fedc167f8a8565bd3a2b3a90d820736a6cf1"
+  "hash": "f3af8bcab6761c7df837b120f39da636e83256100c9a06cf493616bd74314e8e"
 }

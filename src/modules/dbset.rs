@@ -2,6 +2,7 @@ use quote::quote;
 use syn::DeriveInput;
 
 use crate::common::utils;
+use crate::modules::delete_query_builder::get_delete_builder_struct_name;
 use crate::modules::insert_query_builder::get_insert_builder_struct_name;
 use crate::modules::many_query_builder;
 use crate::modules::one_query_builder::get_one_builder_struct_name;
@@ -12,6 +13,7 @@ pub fn get_dbset_impl(input: &DeriveInput) -> proc_macro2::TokenStream {
     let one_query_builder_struct_name = get_one_builder_struct_name(input);
     let insert_builder_struct_name = get_insert_builder_struct_name(input);
     let update_builder_struct_name = get_update_builder_struct_name(input);
+    let delete_builder_struct_name = get_delete_builder_struct_name(input);
 
     let dbset_name = utils::get_dbset_name(input);
 
@@ -30,6 +32,9 @@ pub fn get_dbset_impl(input: &DeriveInput) -> proc_macro2::TokenStream {
             }
             pub fn update() -> #update_builder_struct_name {
                 #update_builder_struct_name::new()
+            }
+            pub fn delete() -> #delete_builder_struct_name {
+                #delete_builder_struct_name::new()
             }
         }
     }
