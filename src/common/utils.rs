@@ -47,12 +47,31 @@ pub fn is_key_attr(attr: &Attribute) -> bool {
 fn extract_inner_string(input: &str) -> Option<String> {
     // Remove leading "= " and surrounding quotes
     if let Some(stripped) = input
-        .strip_prefix("= \"")
+        .trim()
+        .strip_prefix("=")?
+        .trim()
+        .strip_prefix("\"")
         .and_then(|s| s.strip_suffix("\""))
     {
         return Some(stripped.to_string());
     }
     None
+}
+
+#[test]
+fn extract_inner_string_1() {
+    let result = extract_inner_string("= \"foo\"").expect("couldnt get inner");
+    assert_eq!(result, "foo");
+}
+#[test]
+fn extract_inner_string_2() {
+    let result = extract_inner_string("=\"foo\"").expect("couldnt get inner");
+    assert_eq!(result, "foo");
+}
+#[test]
+fn extract_inner_string_3() {
+    let result = extract_inner_string(" =\"foo\"").expect("couldnt get inner");
+    assert_eq!(result, "foo");
 }
 
 pub fn get_table_name(input: &DeriveInput) -> String {
