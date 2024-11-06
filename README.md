@@ -1,6 +1,10 @@
 ## Name pending (currently DB sets)
 
-https://crates.io/crates/db-set-macros
+[![Crates.io](https://img.shields.io/crates/v/db-set-macros)](https://crates.io/crates/db-set-macros)
+[![CI](https://github.com/jayy-lmao/sql-db-set-macros/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/jayy-lmao/sql-db-set-macros/actions?query=branch%3Amain)
+
+
+https://github.com/jayy-lmao/sql-db-set-macros
 
 Inpsired a little bit by Toasty rs and my work on sql-gen.
 Idea is to implement the most common SQLX queries, but allow you to still ultimately use SQLX for anything more complex than a basic query.
