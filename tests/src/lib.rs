@@ -5,7 +5,7 @@ use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
 use testcontainers::{clients::Cli, Container};
 use tokio::sync::OnceCell;
 
-#[derive(DbSet, Debug)]
+#[derive(DbSet, Debug, Clone)]
 #[dbset(table_name = "users")]
 pub struct User {
     #[key]
@@ -159,6 +159,40 @@ async fn test_insert_users() -> Result<(), String> {
     .expect("Could not fetch one");
 
     assert_eq!(matched_user.email, inserted_user.email);
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_update_users() -> Result<(), String> {
+    let pool = get_db_pool().await;
+
+    let mut user = sqlx::query_as!(
+        User,
+        "SELECT id, name, email, details FROM users WHERE id = 'user-2';"
+    )
+    .fetch_one(pool)
+    .await
+    .expect("Could not fetch one");
+
+    user.details = Some("Updated details!".to_string());
+    user.email = String::from("mynewemail@bigpond.com.au");
+    UserDbSet::update()
+        .data(user.clone())
+        .update(pool)
+        .await
+        .expect("Could not update");
+
+    let same_user_again = sqlx::query_as!(
+        User,
+        "SELECT id, name, email, details FROM users WHERE id = 'user-2';"
+    )
+    .fetch_one(pool)
+    .await
+    .expect("Could not fetch one");
+
+    assert_eq!(user.email, same_user_again.email);
+    assert_eq!(user.details, same_user_again.details);
 
     Ok(())
 }

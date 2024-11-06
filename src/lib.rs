@@ -1,3 +1,4 @@
+use modules::{delete_query_builder, update_query_builder};
 use modules::{insert_query_builder, one_query_builder};
 use proc_macro::TokenStream;
 use quote::quote;
@@ -20,6 +21,8 @@ pub fn dbset_derive(input: TokenStream) -> TokenStream {
     let many_query_builder_impl = many_query_builder::get_query_builder(&input);
     let one_query_builder_impl = one_query_builder::get_query_builder(&input);
     let insert_builder_impl = insert_query_builder::get_insert_query_builder(&input);
+    let update_builder_impl = update_query_builder::get_update_query_builder(&input);
+    let delete_builder_impl = delete_query_builder::get_query_builder(&input);
 
     // println!("{}", pretty_print_tokenstream(insert_builder_impl.clone()));
 
@@ -40,6 +43,8 @@ pub fn dbset_derive(input: TokenStream) -> TokenStream {
             #many_query_builder_impl
             #one_query_builder_impl
             #insert_builder_impl
+            #update_builder_impl
+            #delete_builder_impl
             #dbset_impl
         }
 

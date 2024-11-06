@@ -68,6 +68,16 @@ impl<id> UserDbSetOneQueryBuilder<id, NotSet> {
     }
 }
 impl UserDbSetOneQueryBuilder<Set, NotSet> {
+    pub async fn fetch_optional<'e, E: sqlx::PgExecutor<'e>>(
+        self,
+        executor: E,
+    ) -> Result<Option<User>, sqlx::Error> {
+        sqlx::query_as!(
+            User, "SELECT id, name, details, email FROM users WHERE id = $1", self.id,
+        )
+            .fetch_optional(executor)
+            .await
+    }
     pub async fn fetch_one<'e, E: sqlx::PgExecutor<'e>>(
         self,
         executor: E,
@@ -80,6 +90,18 @@ impl UserDbSetOneQueryBuilder<Set, NotSet> {
     }
 }
 impl UserDbSetOneQueryBuilder<NotSet, Set> {
+    pub async fn fetch_optional<'e, E: sqlx::PgExecutor<'e>>(
+        self,
+        executor: E,
+    ) -> Result<Option<User>, sqlx::Error> {
+        sqlx::query_as!(
+            User,
+            "SELECT id, name, details, email FROM users WHERE (email = $1 OR $1 is null)",
+            self.email,
+        )
+            .fetch_optional(executor)
+            .await
+    }
     pub async fn fetch_one<'e, E: sqlx::PgExecutor<'e>>(
         self,
         executor: E,
@@ -184,6 +206,18 @@ impl TagDbSetOneQueryBuilder<NotSet> {
     }
 }
 impl TagDbSetOneQueryBuilder<Set> {
+    pub async fn fetch_optional<'e, E: sqlx::PgExecutor<'e>>(
+        self,
+        executor: E,
+    ) -> Result<Option<Tag>, sqlx::Error> {
+        sqlx::query_as!(
+            Tag,
+            "SELECT tag_name FROM tags WHERE (tag_name = $1 OR $1 is null)",
+            self.tag_name,
+        )
+            .fetch_optional(executor)
+            .await
+    }
     pub async fn fetch_one<'e, E: sqlx::PgExecutor<'e>>(
         self,
         executor: E,
@@ -265,6 +299,19 @@ impl<product_id> FavouritedProductDbSetOneQueryBuilder<product_id, NotSet, NotSe
      }
  }
 impl FavouritedProductDbSetOneQueryBuilder<Set,Set, NotSet> {
+    pub async fn fetch_optional<'e, E: sqlx::PgExecutor<'e>>(
+        self,
+        executor: E,
+    ) -> Result<Option<FavouritedProduct>, sqlx::Error> {
+        sqlx::query_as!(
+            FavouritedProduct,
+            "SELECT product_id, user_id FROM favourite_products WHERE product_id = $1 AND user_id = $2",
+            self.product_id, self.user_id,
+        )
+            .fetch_optional(executor)
+            .await
+    }
+
     pub async fn fetch_one<'e, E: sqlx::PgExecutor<'e>>(
         self,
         executor: E,

@@ -3,21 +3,20 @@ use quote::quote;
 use syn::DeriveInput;
 
 use crate::common::utils::{
-    get_all_fields, get_dbset_name, get_inner_option_type, get_key_fields, get_struct_name,
+     get_dbset_name, get_inner_option_type, get_key_fields, get_struct_name,
     get_table_name, get_unique_fields,
 };
-pub fn get_one_builder_struct_name(input: &DeriveInput) -> Ident {
+pub fn get_delete_builder_struct_name(input: &DeriveInput) -> Ident {
     let dbset_name = get_dbset_name(input);
-    quote::format_ident!("{}OneQueryBuilder", dbset_name)
+    quote::format_ident!("{}DeleteQueryBuilder", dbset_name)
 }
 
 pub fn get_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream {
     let table_name = get_table_name(input);
     let struct_name = get_struct_name(input);
-    let builder_struct_name = get_one_builder_struct_name(input);
+    let builder_struct_name = get_delete_builder_struct_name(input);
     let key_fields = get_key_fields(input);
     let unique_fields = get_unique_fields(input);
-    let all_fields = get_all_fields(input);
 
     let non_nullable_fields = key_fields
         .iter()
@@ -25,7 +24,7 @@ pub fn get_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream {
 
     let all_required_insert_fields = non_nullable_fields;
 
-    let all_query_one_fields = key_fields.iter().chain(unique_fields.iter());
+    let all_query_delete_fields = key_fields.iter().chain(unique_fields.iter());
 
     // Get builder struct generics
     let builder_struct_generics = all_required_insert_fields
@@ -39,7 +38,7 @@ pub fn get_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream {
             UniqueFields = NotSet,
         }]);
 
-    let struct_fields = all_query_one_fields
+    let struct_fields = all_query_delete_fields
         .clone()
         .map(|(name, ty)| {
             let inner_field_type = get_inner_option_type(ty);
@@ -78,7 +77,7 @@ pub fn get_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream {
         })
         .chain(vec![quote! {NotSet}]);
 
-    let initial_struct_fields = all_query_one_fields
+    let initial_struct_fields = all_query_delete_fields
         .clone()
         .map(|(name, _)| {
             quote! { #name: None, }
@@ -102,7 +101,7 @@ pub fn get_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream {
     };
 
     // Create add value functions
-    let fill_other_fields = all_query_one_fields
+    let fill_other_fields = all_query_delete_fields
         .clone()
         .map(|(name, _)| (name, quote! { #name: self.#name, }));
 
@@ -111,7 +110,7 @@ pub fn get_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream {
         (name, quote! { #ph_name: self.#ph_name, })
     });
 
-    let builder_methods = all_query_one_fields.clone()
+    let builder_methods = all_query_delete_fields.clone()
         .map(|(field_name, field_type)| {
             let is_unique_field = unique_fields.iter().any(|uf| uf.0 == *field_name);
             let method_name = quote::format_ident!("{}_eq", field_name);
@@ -197,24 +196,18 @@ pub fn get_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream {
 
     // Create complete impl
 
-    let key_fetch_one_method_generics = all_required_insert_fields
+    let key_fetch_delete_method_generics = all_required_insert_fields
         .clone()
         .map(|(_, _)| {
             quote! { Set, }
         })
         .chain(vec![quote! { NotSet }]);
-    let unique_fetch_one_method_generics = all_required_insert_fields
+    let unique_fetch_delete_method_generics = all_required_insert_fields
         .clone()
         .map(|(_, _)| {
             quote! { NotSet, }
         })
         .chain(vec![quote! { Set }]);
-
-    let all_fields_str = all_fields
-        .iter()
-        .map(|(field_name, _)| field_name.to_string())
-        .collect::<Vec<_>>()
-        .join(", ");
 
     let key_query_builder_fields_where_clause = key_fields
         .iter()
@@ -237,8 +230,6 @@ pub fn get_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream {
         .collect::<Vec<_>>()
         .join(" AND ");
 
-    // let query = format!("INSERT INTO {table_name}({all_insert_fields_str}) VALUES ({all_params}) RETURNING {all_fields_str};");
-
     let unique_query_args = unique_fields.clone().into_iter().map(|(name, _)| {
         quote! { self.#name, }
     });
@@ -246,33 +237,21 @@ pub fn get_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream {
     let unique_query_args_2 = unique_query_args.clone();
 
     let unique_fetch_one = if !unique_fields.is_empty() {
-        let query = format!("SELECT {all_fields_str} FROM {table_name} WHERE {unique_query_builder_fields_where_clause}");
+        let query = format!("DELETE FROM {table_name} WHERE {unique_query_builder_fields_where_clause}");
 
         quote! {
 
-        impl  #builder_struct_name <#(#unique_fetch_one_method_generics)*> {
-                pub async fn fetch_optional<'e, E: sqlx::PgExecutor<'e>>(
-                    self,
-                    executor: E,
-                ) -> Result<Option<#struct_name>, sqlx::Error> {
-                    sqlx::query_as!(
-                        #struct_name,
-                        #query,
-                        #(#unique_query_args)*
-                    )
-                        .fetch_optional(executor)
-                        .await
-            }
-                pub async fn fetch_one<'e, E: sqlx::PgExecutor<'e>>(
+        impl  #builder_struct_name <#(#unique_fetch_delete_method_generics)*> {
+                pub async fn delete<'e, E: sqlx::PgExecutor<'e>>(
                     self,
                     executor: E,
                 ) -> Result<#struct_name, sqlx::Error> {
-                    sqlx::query_as!(
+                    sqlx::query!(
                         #struct_name,
                         #query,
                         #(#unique_query_args_2)*
                     )
-                        .fetch_one(executor)
+                        .execute(executor)
                         .await
             }
         }
@@ -287,33 +266,20 @@ pub fn get_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream {
     let key_query_args_2 = key_query_args .clone();
 
     let key_fetch_one = if !key_fields.is_empty() {
-        let query = format!("SELECT {all_fields_str} FROM {table_name} WHERE {key_query_builder_fields_where_clause}");
+        let query = format!("DELETE FROM {table_name} WHERE {key_query_builder_fields_where_clause}");
 
         quote! {
-            impl  #builder_struct_name <#(#key_fetch_one_method_generics)*> {
-                    pub async fn fetch_optional<'e, E: sqlx::PgExecutor<'e>>(
-                        self,
-                        executor: E,
-                    ) -> Result<Option<#struct_name>, sqlx::Error> {
-                        sqlx::query_as!(
-                            #struct_name,
-                            #query,
-                            #(#key_query_args)*
-                        )
-                            .fetch_optional(executor)
-                            .await
-                }
-
-                    pub async fn fetch_one<'e, E: sqlx::PgExecutor<'e>>(
+            impl  #builder_struct_name <#(#key_fetch_delete_method_generics)*> {
+                    pub async fn delete<'e, E: sqlx::PgExecutor<'e>>(
                         self,
                         executor: E,
                     ) -> Result<#struct_name, sqlx::Error> {
-                        sqlx::query_as!(
+                        sqlx::query!(
                             #struct_name,
                             #query,
                             #(#key_query_args_2)*
                         )
-                            .fetch_one(executor)
+                            .execute(executor)
                             .await
                 }
             }
