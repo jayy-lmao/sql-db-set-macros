@@ -67,9 +67,10 @@ pub fn get_table_name(input: &DeriveInput) -> String {
                         // if let Lit::Str(lit_str) = meta {}
                         if let ParseNestedMeta { input, .. } = meta {
                             let instring = input.to_string();
-                            let parsed_inn_string =
-                                extract_inner_string(&instring).expect("Could not extract inner");
-                            table_name = parsed_inn_string;
+                            let parsed_inn_string_maybe = extract_inner_string(&instring);
+                            if let Some(parsed_inn_string) = parsed_inn_string_maybe {
+                                table_name = parsed_inn_string;
+                            }
                         }
                     }
                     Ok(())
@@ -93,9 +94,10 @@ pub fn get_dbset_name(input: &DeriveInput) -> Ident {
                         // if let Lit::Str(lit_str) = meta {}
                         if let ParseNestedMeta { input, .. } = meta {
                             let instring = input.to_string();
-                            let parsed_inn_string =
-                                extract_inner_string(&instring).expect("Could not extract inner");
-                            set_name = parsed_inn_string;
+                            let parsed_inn_string_maybe = extract_inner_string(&instring);
+                            if let Some(parsed_inn_string) = parsed_inn_string_maybe {
+                                set_name = parsed_inn_string;
+                            }
                         }
                     }
                     Ok(())
@@ -142,8 +144,10 @@ pub fn get_field_names(input: &DeriveInput) -> Vec<&Ident> {
     let fields = get_fields(input);
     let mut field_names = Vec::new();
     for field in fields {
-        let field_name = field.ident.as_ref().expect("could not cast ident as ref");
-        field_names.push(field_name);
+        let field_name_maybe = field.ident.as_ref();
+        if let Some(field_name) = field_name_maybe {
+            field_names.push(field_name);
+        }
     }
     field_names
 }
@@ -153,12 +157,14 @@ pub fn get_auto_fields(input: &DeriveInput) -> Vec<(&Ident, &Type)> {
     let mut auto_fields = Vec::new();
 
     for field in fields {
-        let field_name = field.ident.as_ref().expect("could not cast ident as ref");
-        let field_type = &field.ty;
-        let is_auto = field.attrs.iter().any(is_auto_attr);
+        let field_name_maybe = field.ident.as_ref();
+        if let Some(field_name) = field_name_maybe {
+            let field_type = &field.ty;
+            let is_auto = field.attrs.iter().any(is_auto_attr);
 
-        if is_auto {
-            auto_fields.push((field_name, field_type));
+            if is_auto {
+                auto_fields.push((field_name, field_type));
+            }
         }
     }
     auto_fields
@@ -169,12 +175,14 @@ pub fn get_key_fields(input: &DeriveInput) -> Vec<(&Ident, &Type)> {
     let mut key_fields = Vec::new();
 
     for field in fields {
-        let field_name = field.ident.as_ref().expect("could not cast ident as ref");
-        let field_type = &field.ty;
-        let is_key = field.attrs.iter().any(is_key_attr);
+        let field_name_maybe = field.ident.as_ref();
+        if let Some(field_name) = field_name_maybe {
+            let field_type = &field.ty;
+            let is_key = field.attrs.iter().any(is_key_attr);
 
-        if is_key {
-            key_fields.push((field_name, field_type));
+            if is_key {
+                key_fields.push((field_name, field_type));
+            }
         }
     }
     key_fields
@@ -185,12 +193,14 @@ pub fn get_unique_fields(input: &DeriveInput) -> Vec<(&Ident, &Type)> {
     let mut unique_fields = Vec::new();
 
     for field in fields {
-        let field_name = field.ident.as_ref().expect("could not cast ident as ref");
-        let field_type = &field.ty;
-        let is_unique = field.attrs.iter().any(is_unique_attr);
+        let field_name_maybe = field.ident.as_ref();
+        if let Some(field_name) = field_name_maybe {
+            let field_type = &field.ty;
+            let is_unique = field.attrs.iter().any(is_unique_attr);
 
-        if is_unique {
-            unique_fields.push((field_name, field_type));
+            if is_unique {
+                unique_fields.push((field_name, field_type));
+            }
         }
     }
     unique_fields
@@ -200,10 +210,12 @@ pub fn get_all_fields(input: &DeriveInput) -> Vec<(&Ident, &Type)> {
     let mut all_fields = Vec::new();
     let fields = get_fields(input);
     for field in fields {
-        let field_name = field.ident.as_ref().expect("could not cast ident as ref");
-        let field_type = &field.ty;
+        let field_name_maybe = field.ident.as_ref();
+        if let Some(field_name) = field_name_maybe {
+            let field_type = &field.ty;
 
-        all_fields.push((field_name, field_type));
+            all_fields.push((field_name, field_type));
+        }
     }
     all_fields
 }
