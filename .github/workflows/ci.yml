@@ -16,17 +16,9 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Cache Cargo registry and build
-        id: cache
-        uses: actions/cache@v3
-        with:
-          path: |
-            ~/.cargo/registry
-            target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-
-
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2.7.5
+            
       - name: Build project
         run: cargo build --release
 
@@ -40,13 +32,8 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Restore Cargo cache
-        uses: actions/cache@v3
-        with:
-          path: |
-            ~/.cargo/registry
-            target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2.7.5
 
       - name: Run unit tests from root
         run: cargo test --release
@@ -61,13 +48,8 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Restore Cargo cache
-        uses: actions/cache@v3
-        with:
-          path: |
-            ~/.cargo/registry
-            target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2.7.5
 
       - name: Run integration tests in `tests`
         run: |
