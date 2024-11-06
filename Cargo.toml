@@ -1,12 +1,13 @@
 [lib]
 proc-macro = true
-description = "A derive for some ORM functions utilising SQLX"
-license = "MIT OR Apache-2.0"
 
 [package]
 name = "db-set-macros"
 version = "0.1.0"
 edition = "2021"
+description = "A derive for some ORM functions utilising SQLX"
+license = "MIT OR Apache-2.0"
+readme = "README.md"
 
 [dependencies]
 pretty_assertions = "1.4.1"
