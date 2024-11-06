@@ -1,4 +1,4 @@
-use std::sync::LazyLock;
+use std::{sync::LazyLock, time::Duration};
 
 use db_set_macros::DbSet;
 use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
@@ -33,7 +33,8 @@ async fn prepare_db() -> (Container<'static, TestPostgres>, Pool<Postgres>) {
     );
 
     let pool = PgPoolOptions::new()
-        .max_connections(5)
+        .max_connections(10)
+        .acquire_timeout(Duration::from_secs(60)) // Set your preferred timeout
         .connect(&connection_string)
         .await
         .expect("Could not connect to postgres");
