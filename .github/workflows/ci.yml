@@ -27,10 +27,10 @@ jobs:
           tool: nextest
 
       - name: Run unit tests from root
-        run: cargo nextest run 
+        run: cargo nextest run --release
 
       - name: Run integration tests in `tests`
         run: |
           cd tests
-          TOKIO_WORKER_THREADS=1 cargo nextest run -j 1
+          TOKIO_WORKER_THREADS=1 cargo nextest run -j 1 --release
 
