@@ -102,7 +102,7 @@ async fn test_fetch_users_by_name() -> Result<(), String> {
 
     let users = UserDbSet::many()
         .name_eq("bob".to_string())
-        .fetch(pool)
+        .fetch_all(pool)
         .await
         .expect("Could not fetch users");
 
@@ -117,7 +117,7 @@ async fn test_fetch_users_by_name_and_details() -> Result<(), String> {
     let users = UserDbSet::many()
         .name_eq("bob".to_string())
         .details_eq("the best bob".to_string())
-        .fetch(pool)
+        .fetch_all(pool)
         .await
         .expect("Could not fetch users");
 
@@ -130,7 +130,7 @@ async fn test_fetch_all_users() -> Result<(), String> {
     let pool = get_db_pool().await;
 
     let users = UserDbSet::many()
-        .fetch(pool)
+        .fetch_all(pool)
         .await
         .expect("Could not fetch users");
 

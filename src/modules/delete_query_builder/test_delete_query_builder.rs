@@ -70,22 +70,24 @@ impl UserDbSetDeleteQueryBuilder<Set, NotSet> {
     pub async fn delete<'e, E: sqlx::PgExecutor<'e>>(
         self,
         executor: E,
-    ) -> Result<User, sqlx::Error> {
-        sqlx::query!(User, "DELETE FROM users WHERE id = $1", self.id,)
+    ) -> Result<(), sqlx::Error> {
+        sqlx::query!("DELETE FROM users WHERE id = $1", self.id,)
             .execute(executor)
-            .await
+            .await?;
+        Ok(())
     }
 }
 impl UserDbSetDeleteQueryBuilder<NotSet, Set> {
     pub async fn delete<'e, E: sqlx::PgExecutor<'e>>(
         self,
         executor: E,
-    ) -> Result<User, sqlx::Error> {
+    ) -> Result<(), sqlx::Error> {
         sqlx::query!(
-            User, "DELETE FROM users WHERE (email = $1 OR $1 is null)", self.email,
+             "DELETE FROM users WHERE (email = $1 OR $1 is null)", self.email,
         )
             .execute(executor)
-            .await
+            .await?;
+            Ok(())
     }
 }
 
@@ -150,12 +152,13 @@ impl TagDbSetDeleteQueryBuilder<Set> {
     pub async fn delete<'e, E: sqlx::PgExecutor<'e>>(
         self,
         executor: E,
-    ) -> Result<Tag, sqlx::Error> {
+    ) -> Result<(), sqlx::Error> {
         sqlx::query!(
-            Tag, "DELETE FROM tags WHERE (tag_name = $1 OR $1 is null)", self.tag_name,
+             "DELETE FROM tags WHERE (tag_name = $1 OR $1 is null)", self.tag_name,
         )
             .execute(executor)
-            .await
+            .await?;
+        Ok(())
     }
 }
 
@@ -234,14 +237,14 @@ impl FavouritedProductDbSetDeleteQueryBuilder<Set, Set, NotSet> {
     pub async fn delete<'e, E: sqlx::PgExecutor<'e>>(
         self,
         executor: E,
-    ) -> Result<FavouritedProduct, sqlx::Error> {
+    ) -> Result<(), sqlx::Error> {
         sqlx::query!(
-            FavouritedProduct,
             "DELETE FROM favourite_products WHERE product_id = $1 AND user_id = $2", self
             .product_id, self.user_id,
         )
             .execute(executor)
-            .await
+            .await?;
+        Ok(())
     }
 }
 

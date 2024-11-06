@@ -245,14 +245,14 @@ pub fn get_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream {
                 pub async fn delete<'e, E: sqlx::PgExecutor<'e>>(
                     self,
                     executor: E,
-                ) -> Result<#struct_name, sqlx::Error> {
+                ) -> Result<(), sqlx::Error> {
                     sqlx::query!(
-                        #struct_name,
                         #query,
                         #(#unique_query_args_2)*
                     )
                         .execute(executor)
-                        .await
+                        .await?;
+                    Ok(())
             }
         }
         }
@@ -273,14 +273,14 @@ pub fn get_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream {
                     pub async fn delete<'e, E: sqlx::PgExecutor<'e>>(
                         self,
                         executor: E,
-                    ) -> Result<#struct_name, sqlx::Error> {
+                    ) -> Result<(), sqlx::Error> {
                         sqlx::query!(
-                            #struct_name,
                             #query,
                             #(#key_query_args_2)*
                         )
                             .execute(executor)
-                            .await
+                            .await?;
+                        Ok(())
                 }
             }
         }
