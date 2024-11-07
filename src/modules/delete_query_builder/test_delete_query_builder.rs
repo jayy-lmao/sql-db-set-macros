@@ -30,11 +30,11 @@ pub struct User {
     "#;
 
     let output = r#"
-pub struct UserDbSetDeleteQueryBuilder<id = NotSet, UniqueFields = NotSet> {
+pub struct UserDbSetDeleteQueryBuilder<Id = NotSet, UniqueFields = NotSet> {
     id: Option<String>,
     email: Option<String>,
     _unique_fields: std::marker::PhantomData<UniqueFields>,
-    _id: std::marker::PhantomData<id>,
+    _id: std::marker::PhantomData<Id>,
 }
 impl UserDbSetDeleteQueryBuilder {
     pub fn new() -> UserDbSetDeleteQueryBuilder<NotSet, NotSet> {
@@ -56,8 +56,8 @@ impl UserDbSetDeleteQueryBuilder<NotSet, NotSet> {
         }
     }
 }
-impl<id> UserDbSetDeleteQueryBuilder<id, NotSet> {
-    pub fn email_eq(self, email: String) -> UserDbSetDeleteQueryBuilder<id, Set> {
+impl UserDbSetDeleteQueryBuilder<NotSet, NotSet> {
+    pub fn email_eq(self, email: String) -> UserDbSetDeleteQueryBuilder<NotSet, Set> {
         UserDbSetDeleteQueryBuilder {
             email: Some(email),
             id: self.id,
@@ -183,15 +183,15 @@ pub struct FavouritedProduct {
 
     let output = r#"
 pub struct FavouritedProductDbSetDeleteQueryBuilder<
-    product_id = NotSet,
-    user_id = NotSet,
+    ProductId = NotSet,
+    UserId = NotSet,
     UniqueFields = NotSet,
 > {
     product_id: Option<uuid::Uuid>,
     user_id: Option<uuid::Uuid>,
     _unique_fields: std::marker::PhantomData<UniqueFields>,
-    _product_id: std::marker::PhantomData<product_id>,
-    _user_id: std::marker::PhantomData<user_id>,
+    _product_id: std::marker::PhantomData<ProductId>,
+    _user_id: std::marker::PhantomData<UserId>,
 }
 
 impl FavouritedProductDbSetDeleteQueryBuilder {
@@ -205,11 +205,11 @@ impl FavouritedProductDbSetDeleteQueryBuilder {
         }
     }
 }
-impl<user_id> FavouritedProductDbSetDeleteQueryBuilder<NotSet, user_id, NotSet> {
+impl<UserId> FavouritedProductDbSetDeleteQueryBuilder<NotSet, UserId, NotSet> {
     pub fn product_id_eq(
         self,
         product_id: uuid::Uuid,
-    ) -> FavouritedProductDbSetDeleteQueryBuilder<Set, user_id, NotSet> {
+    ) -> FavouritedProductDbSetDeleteQueryBuilder<Set, UserId, NotSet> {
         FavouritedProductDbSetDeleteQueryBuilder {
             product_id: Some(product_id),
             user_id: self.user_id,
@@ -219,11 +219,11 @@ impl<user_id> FavouritedProductDbSetDeleteQueryBuilder<NotSet, user_id, NotSet> 
         }
     }
 }
-impl<product_id> FavouritedProductDbSetDeleteQueryBuilder<product_id, NotSet, NotSet> {
+impl<ProductId> FavouritedProductDbSetDeleteQueryBuilder<ProductId, NotSet, NotSet> {
     pub fn user_id_eq(
         self,
         user_id: uuid::Uuid,
-    ) -> FavouritedProductDbSetDeleteQueryBuilder<product_id, Set, NotSet> {
+    ) -> FavouritedProductDbSetDeleteQueryBuilder<ProductId, Set, NotSet> {
         FavouritedProductDbSetDeleteQueryBuilder {
             user_id: Some(user_id),
             product_id: self.product_id,

@@ -1,3 +1,4 @@
+use convert_case::{Case, Casing};
 use modules::{delete_query_builder, update_query_builder};
 use modules::{insert_query_builder, one_query_builder};
 use proc_macro::TokenStream;
@@ -29,7 +30,13 @@ pub fn dbset_derive(input: TokenStream) -> TokenStream {
     let from_row_impl = from_row::get_from_row_impl(&input);
     let dbset_impl = dbset::get_dbset_impl(&input);
 
-    let module_name = quote::format_ident!("{}_module", dbset_name);
+    let module_name = quote::format_ident!(
+        "{}_module",
+        dbset_name
+            .to_string()
+            .from_case(Case::Pascal)
+            .to_case(Case::Snake)
+    );
 
     let expanded = quote! {
 

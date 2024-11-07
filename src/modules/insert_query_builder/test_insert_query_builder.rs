@@ -28,9 +28,9 @@ pub struct Account {
     "#;
 
     let output = r#"
-pub struct AccountDbSetInsertBuilder<email = NotSet> {
+pub struct AccountDbSetInsertBuilder<Email = NotSet> {
     email: Option<String>,
-    _email: std::marker::PhantomData<email>,
+    _email: std::marker::PhantomData<Email>,
 }
 impl AccountDbSetInsertBuilder {
     pub fn new() -> AccountDbSetInsertBuilder<NotSet> {
@@ -82,14 +82,14 @@ pub struct User {
     "#;
 
     let output = r#"
-pub struct UserDbSetInsertBuilder<id = NotSet, name = NotSet, email = NotSet> {
+pub struct UserDbSetInsertBuilder<Id = NotSet, Name = NotSet, Email = NotSet> {
     id: Option<String>,
     name: Option<String>,
     details: Option<String>,
     email: Option<String>,
-    _id: std::marker::PhantomData<id>,
-    _name: std::marker::PhantomData<name>,
-    _email: std::marker::PhantomData<email>,
+    _id: std::marker::PhantomData<Id>,
+    _name: std::marker::PhantomData<Name>,
+    _email: std::marker::PhantomData<Email>,
 }
 impl UserDbSetInsertBuilder {
     pub fn new() -> UserDbSetInsertBuilder<NotSet, NotSet, NotSet> {
@@ -104,8 +104,8 @@ impl UserDbSetInsertBuilder {
         }
     }
 }
-impl<name, email> UserDbSetInsertBuilder<NotSet, name, email> {
-    pub fn id(self, id: String) -> UserDbSetInsertBuilder<Set, name, email> {
+impl<Name, Email> UserDbSetInsertBuilder<NotSet, Name, Email> {
+    pub fn id(self, id: String) -> UserDbSetInsertBuilder<Set, Name, Email> {
         UserDbSetInsertBuilder {
             id: Some(id),
             name: self.name,
@@ -117,8 +117,8 @@ impl<name, email> UserDbSetInsertBuilder<NotSet, name, email> {
         }
     }
 }
-impl<id, email> UserDbSetInsertBuilder<id, NotSet, email> {
-    pub fn name(self, name: String) -> UserDbSetInsertBuilder<id, Set, email> {
+impl<Id, Email> UserDbSetInsertBuilder<Id, NotSet, Email> {
+    pub fn name(self, name: String) -> UserDbSetInsertBuilder<Id, Set, Email> {
         UserDbSetInsertBuilder {
             name: Some(name),
             id: self.id,
@@ -130,8 +130,8 @@ impl<id, email> UserDbSetInsertBuilder<id, NotSet, email> {
         }
     }
 }
-impl<id,name, email> UserDbSetInsertBuilder<id, name, email> {
-    pub fn details(self, details: String) -> UserDbSetInsertBuilder<id, name, email> {
+impl<Id,Name, Email> UserDbSetInsertBuilder<Id, Name, Email> {
+    pub fn details(self, details: String) -> UserDbSetInsertBuilder<Id, Name, Email> {
         UserDbSetInsertBuilder {
             details: Some(details),
             id: self.id,
@@ -143,8 +143,8 @@ impl<id,name, email> UserDbSetInsertBuilder<id, name, email> {
         }
     }
 }
-impl<id, name> UserDbSetInsertBuilder<id, name, NotSet> {
-    pub fn email(self, email: String) -> UserDbSetInsertBuilder<id, name, Set> {
+impl<Id, Name> UserDbSetInsertBuilder<Id, Name, NotSet> {
+    pub fn email(self, email: String) -> UserDbSetInsertBuilder<Id, Name, Set> {
         UserDbSetInsertBuilder {
             email: Some(email),
             id: self.id,

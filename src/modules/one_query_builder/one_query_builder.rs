@@ -1,3 +1,4 @@
+use convert_case::{Case, Casing};
 use proc_macro2::Ident;
 use quote::quote;
 use syn::DeriveInput;
@@ -31,8 +32,9 @@ pub fn get_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream {
     let builder_struct_generics = all_required_insert_fields
         .clone()
         .map(|(field_name, _)| {
+            let gen_name_pascal = quote::format_ident!("{}", field_name.to_string().from_case(Case::Snake).to_case(Case::Pascal));
             quote! {
-                #field_name = NotSet,
+                #gen_name_pascal = NotSet,
             }
         })
         .chain(vec![quote! {
@@ -56,8 +58,9 @@ pub fn get_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream {
         }]);
 
     let phantom_struct_fields = all_required_insert_fields.clone().map(|(name, _)| {
+                    let gen_name_pascal = quote::format_ident!("{}", name.to_string().from_case(Case::Snake).to_case(Case::Pascal));
         let ph_name = quote::format_ident!("_{}", name);
-        quote! { #ph_name: std::marker::PhantomData::<#name>, }
+        quote! { #ph_name: std::marker::PhantomData::<#gen_name_pascal>, }
     });
 
     // Create Builder Struct
@@ -81,6 +84,7 @@ pub fn get_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream {
     let initial_struct_fields = all_query_one_fields
         .clone()
         .map(|(name, _)| {
+
             quote! { #name: None, }
         })
         .chain(vec![quote! {
@@ -141,21 +145,37 @@ pub fn get_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream {
 
             let pre_impl_generics_in = all_required_insert_fields.clone().map(|(gen_name, _)|{
                 if gen_name != field_name {
-                    return quote!{ #gen_name, }
+                    if !is_unique_field  {
+                    let gen_name_pascal = quote::format_ident!("{}", gen_name.to_string().from_case(Case::Snake).to_case(Case::Pascal));
+                        return quote!{ #gen_name_pascal, }
+                    } else {
+                        return quote!{  }
+
+                    }
                 }
                 quote!{  }
             });
 
             let generics_in = all_required_insert_fields.clone().map(|(gen_name, _)|{
                 if gen_name != field_name {
-                    return quote!{ #gen_name, }
+                    if !is_unique_field  {
+                    let gen_name_pascal = quote::format_ident!("{}", gen_name.to_string().from_case(Case::Snake).to_case(Case::Pascal));
+                        return quote!{ #gen_name_pascal, }
+                    } else {
+                        return quote!{ NotSet, }
+                    }
                 }
                 quote!{ NotSet, }
             }).chain(vec![quote!{NotSet}]);
             
             let generics_out = all_required_insert_fields.clone().map(|(gen_name, _)|{
                 if gen_name != field_name {
-                    return quote!{ #gen_name, }
+                    if !is_unique_field  {
+                    let gen_name_pascal = quote::format_ident!("{}", gen_name.to_string().from_case(Case::Snake).to_case(Case::Pascal));
+                        return quote!{ #gen_name_pascal, }
+                    } else {
+                        return quote!{ NotSet, }
+                    }
                 }
                 quote!{ Set, }
                 }).chain( if is_unique_field {
@@ -178,6 +198,7 @@ pub fn get_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream {
                 Some(inner) => inner,
                 None => field_type,
             };
+
 
             quote! {
                 impl <#(#pre_impl_generics_in)*> #builder_struct_name <#(#generics_in)*> {

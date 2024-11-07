@@ -31,11 +31,11 @@ pub struct User {
 
     let output = r#"
 
-pub struct UserDbSetOneQueryBuilder<id = NotSet, UniqueFields = NotSet> {
+pub struct UserDbSetOneQueryBuilder<Id = NotSet, UniqueFields = NotSet> {
     id: Option<String>,
     email: Option<String>,
     _unique_fields: std::marker::PhantomData<UniqueFields>,
-    _id: std::marker::PhantomData<id>,
+    _id: std::marker::PhantomData<Id>,
 }
 impl UserDbSetOneQueryBuilder {
     pub fn new() -> UserDbSetOneQueryBuilder<NotSet, NotSet> {
@@ -57,8 +57,8 @@ impl UserDbSetOneQueryBuilder<NotSet, NotSet> {
         }
     }
 }
-impl<id> UserDbSetOneQueryBuilder<id, NotSet> {
-    pub fn email_eq(self, email: String) -> UserDbSetOneQueryBuilder<id, Set> {
+impl UserDbSetOneQueryBuilder<NotSet, NotSet> {
+    pub fn email_eq(self, email: String) -> UserDbSetOneQueryBuilder<NotSet, Set> {
         UserDbSetOneQueryBuilder {
             email: Some(email),
             id: self.id,
@@ -134,7 +134,7 @@ pub struct Order {
     "#;
 
     let output = r#"
-pub struct OrderDbSetOneQueryBuilder<id = NotSet> {
+pub struct OrderDbSetOneQueryBuilder<Id = NotSet> {
     id: Option<uuid::Uuid>,
     _id: std::marker::PhantomData<id>,
 }
@@ -250,12 +250,12 @@ pub struct FavouritedProduct {
     "#;
 
     let output = r#"
-pub struct FavouritedProductDbSetOneQueryBuilder<product_id = NotSet, user_id = NotSet, UniqueFields = NotSet> {
+pub struct FavouritedProductDbSetOneQueryBuilder<ProductId = NotSet, UserId = NotSet, UniqueFields = NotSet> {
     product_id: Option<uuid::Uuid>,
     user_id: Option<uuid::Uuid>,
     _unique_fields: std::marker::PhantomData<UniqueFields>,
-    _product_id: std::marker::PhantomData<product_id>,
-    _user_id: std::marker::PhantomData<user_id>,
+    _product_id: std::marker::PhantomData<ProductId>,
+    _user_id: std::marker::PhantomData<UserId>,
 }
 impl FavouritedProductDbSetOneQueryBuilder {
     pub fn new() -> FavouritedProductDbSetOneQueryBuilder<NotSet,NotSet, NotSet> {
@@ -269,11 +269,11 @@ impl FavouritedProductDbSetOneQueryBuilder {
     }
 }
 
-impl<user_id> FavouritedProductDbSetOneQueryBuilder<NotSet, user_id, NotSet> {
+impl<UserId> FavouritedProductDbSetOneQueryBuilder<NotSet, UserId, NotSet> {
     pub fn product_id_eq(
         self,
         product_id: uuid::Uuid,
-    ) -> FavouritedProductDbSetOneQueryBuilder<Set, user_id, NotSet> {
+    ) -> FavouritedProductDbSetOneQueryBuilder<Set, UserId, NotSet> {
         FavouritedProductDbSetOneQueryBuilder {
             product_id: Some(product_id),
             user_id: self.user_id,
@@ -284,11 +284,11 @@ impl<user_id> FavouritedProductDbSetOneQueryBuilder<NotSet, user_id, NotSet> {
         }
     }
 }
-impl<product_id> FavouritedProductDbSetOneQueryBuilder<product_id, NotSet, NotSet> {
+impl<ProductId> FavouritedProductDbSetOneQueryBuilder<ProductId, NotSet, NotSet> {
     pub fn user_id_eq(
         self,
         user_id: uuid::Uuid,
-    ) -> FavouritedProductDbSetOneQueryBuilder<product_id, Set, NotSet> {
+    ) -> FavouritedProductDbSetOneQueryBuilder<ProductId, Set, NotSet> {
         FavouritedProductDbSetOneQueryBuilder {
             user_id: Some(user_id),
             product_id: self.product_id,
