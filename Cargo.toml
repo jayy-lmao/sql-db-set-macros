@@ -3,7 +3,7 @@ proc-macro = true
 
 [package]
 name = "db-set-macros"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 description = "A derive for some ORM functions utilising SQLX"
 license = "MIT OR Apache-2.0"
