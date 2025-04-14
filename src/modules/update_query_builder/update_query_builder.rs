@@ -80,7 +80,7 @@ pub fn get_update_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream
         "UPDATE {table_name} SET {set_fields} WHERE {query_builder_where_fields} RETURNING {all_fields_str};"
     );
 
-    let query_args = all_update_fields.clone().map(|(name, _)| {
+    let query_args = all_fields.clone().into_iter().map(|(name, _)| {
         quote! { self.updatable.#name, }
     });
 

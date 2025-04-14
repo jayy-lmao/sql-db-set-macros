@@ -76,7 +76,7 @@ pub fn get_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream {
             pub async fn fetch_all<'e, E: sqlx::PgExecutor<'e>>(
                 self,
                 executor: E,
-            ) -> Result<Vec<User>, sqlx::Error> {
+            ) -> Result<Vec<#struct_name>, sqlx::Error> {
 
                 sqlx::query_as!(
                     #struct_name,
