@@ -3,8 +3,8 @@ use quote::quote;
 use syn::{Attribute, DeriveInput, Type};
 
 use crate::common::utils::{
-    get_all_fields, get_auto_fields, get_dbset_name, get_key_fields, get_struct_name,
-    get_table_name, is_custom_enum_attr,
+    get_all_fields, get_auto_fields, get_dbset_name, get_key_fields, get_query_fields_string,
+    get_struct_name, get_table_name, is_custom_enum_attr,
 };
 pub fn get_update_builder_struct_name(input: &DeriveInput) -> Ident {
     let dbset_name = get_dbset_name(input);
@@ -17,11 +17,7 @@ pub fn get_update_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream
     let builder_struct_name = get_update_builder_struct_name(input);
     let all_fields = get_all_fields(input);
     let auto_fields = get_auto_fields(input);
-    let all_fields_str = all_fields
-        .iter()
-        .map(|(field_name, _, _)| field_name.to_string())
-        .collect::<Vec<_>>()
-        .join(", ");
+    let all_fields_str = get_query_fields_string(input);
 
     let is_not_auto_field = |(field, _, _): &(&proc_macro2::Ident, &Type, &Vec<Attribute>)| {
         !auto_fields
