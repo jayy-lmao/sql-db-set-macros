@@ -126,9 +126,9 @@ impl AccountDbSetInsertBuilder<Set, Set> {
         executor: E,
     ) -> Result<Account, sqlx::Error> {
         sqlx::query_as!(
-            Account, "INSERT INTO users(email, status) VALUES ($1, $2) RETURNING id, email, status;", 
+            Account, "INSERT INTO users(email, status) VALUES ($1, $2) RETURNING id, email, status as \"status:AccountStatus\";", 
             self.email,
-            self.status as AccountStatus,
+            self.status as Option<AccountStatus>,
         )
             .fetch_one(executor)
             .await

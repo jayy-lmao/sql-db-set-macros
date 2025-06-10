@@ -9,7 +9,7 @@ pub enum UserStatus {
     Unverified,
 }
 
-#[derive(DbSet, Debug, Clone)]
+#[derive(DbSet,Debug, Clone)]
 #[dbset(table_name = "users")]
 pub struct User {
     #[key]
@@ -21,6 +21,7 @@ pub struct User {
     #[custom_enum]
     status: UserStatus,
 }
+
 
 #[tokio::test]
 async fn test_fetch_user_by_id() -> Result<(), String> {

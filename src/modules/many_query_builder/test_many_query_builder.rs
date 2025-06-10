@@ -115,7 +115,7 @@ impl UserDbSetManyQueryBuilder {
         sqlx::query_as!(
             User,
             "SELECT id, name, details, email, status AS \"status:UserStatus\" FROM users WHERE (name = $1 or $1 is null) AND (details = $2 or $2 is null) AND (status = $3 or $3 is null)",
-            self.name, self.details, self.status as UserStatus,
+            self.name, self.details, self.status as Option<UserStatus>,
         )
             .fetch_all(executor)
             .await

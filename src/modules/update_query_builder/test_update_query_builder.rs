@@ -63,6 +63,57 @@ impl AccountDbSetUpdateBuilderWithData {
 }
 
 #[test]
+fn can_parse_user_struct_with_custom_enum() -> Result<(), String> {
+    let input_str = r#"
+#[dbset(table_name = "users")]
+pub struct Account {
+    #[key]
+    #[auto]
+    id: uuid::Uuid,
+    #[unique]
+    email: String, 
+    #[custom_enum]
+    status: AccountStatus, 
+    }
+    "#;
+
+    let output = r#"
+pub struct AccountDbSetUpdateBuilder {}
+pub struct AccountDbSetUpdateBuilderWithData {
+    updatable: Account,
+}
+impl AccountDbSetUpdateBuilder {
+    pub fn new() -> AccountDbSetUpdateBuilder {
+        Self {}
+    }
+}
+impl AccountDbSetUpdateBuilder {
+    pub fn data(self, value: Account) -> AccountDbSetUpdateBuilderWithData {
+        AccountDbSetUpdateBuilderWithData {
+            updatable: value,
+        }
+    }
+}
+impl AccountDbSetUpdateBuilderWithData {
+    pub async fn update<'e, E: sqlx::PgExecutor<'e>>(
+        self,
+        executor: E,
+    ) -> Result<Account, sqlx::Error> {
+
+        sqlx::query_as!(Account, "UPDATE users SET email = $2, status = $3 WHERE id = $1 RETURNING id, email, status;",
+            self.updatable.id, self.updatable.email, self.updatable.status as UserStatus,
+        ).fetch_one(executor).await
+    }
+}
+
+
+    "#;
+
+    compare_computed_to_expected(input_str, output);
+    Ok(())
+}
+
+#[test]
 fn can_parse_user_struct_with_unique_and_key_into_one_builder() -> Result<(), String> {
     let input_str = r#"
 #[dbset(table_name = "users")]
