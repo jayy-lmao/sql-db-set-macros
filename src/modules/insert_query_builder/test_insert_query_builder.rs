@@ -69,6 +69,79 @@ impl AccountDbSetInsertBuilder<Set> {
 }
 
 #[test]
+fn can_parse_user_struct_with_custom_enum() -> Result<(), String> {
+    let input_str = r#"
+#[dbset(table_name = "users")]
+pub struct Account {
+    #[key]
+    #[auto]
+    id: uuid::Uuid,
+    #[unique]
+    email: String, 
+    #[custom_enum]
+    status: AccountStatus
+}
+    "#;
+
+    let output = r#"
+pub struct AccountDbSetInsertBuilder<Email = NotSet, Status = NotSet> {
+    email: Option<String>,
+    status: Option<AccountStatus>,
+    _email: std::marker::PhantomData<Email>,
+    _status: std::marker::PhantomData<Status>,
+}
+impl AccountDbSetInsertBuilder {
+    pub fn new() -> AccountDbSetInsertBuilder<NotSet, NotSet> {
+        Self {
+            email: None,
+            status: None,
+            _email: std::marker::PhantomData::<NotSet>,
+            _status: std::marker::PhantomData::<NotSet>,
+        }
+    }
+}
+impl<Status> AccountDbSetInsertBuilder<NotSet, Status> {
+    pub fn email(self, email: String) -> AccountDbSetInsertBuilder<Set, Status> {
+        AccountDbSetInsertBuilder {
+            email: Some(email),
+            status: self.status,
+            _email: std::marker::PhantomData::<Set>,
+            _status: self._status,
+        }
+    }
+}
+impl<Email> AccountDbSetInsertBuilder<Email, NotSet> {
+    pub fn status(self, status: AccountStatus) -> AccountDbSetInsertBuilder<Email, Set> {
+        AccountDbSetInsertBuilder {
+            status: Some(status),
+            email: self.email,
+            _status: std::marker::PhantomData::<Set>,
+            _email: self._email,
+        }
+    }
+}
+impl AccountDbSetInsertBuilder<Set, Set> {
+    pub async fn insert<'e, E: sqlx::PgExecutor<'e>>(
+        self,
+        executor: E,
+    ) -> Result<Account, sqlx::Error> {
+        sqlx::query_as!(
+            Account, "INSERT INTO users(email, status) VALUES ($1, $2) RETURNING id, email, status;", 
+            self.email,
+            self.status as AccountStatus,
+        )
+            .fetch_one(executor)
+            .await
+    }
+}
+
+    "#;
+
+    compare_computed_to_expected(input_str, output);
+    Ok(())
+}
+
+#[test]
 fn can_parse_user_struct_with_unique_and_key_into_one_builder() -> Result<(), String> {
     let input_str = r#"
 #[dbset(table_name = "users")]
