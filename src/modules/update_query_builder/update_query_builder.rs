@@ -4,7 +4,7 @@ use syn::{Attribute, DeriveInput, Type};
 
 use crate::common::utils::{
     get_all_fields, get_auto_fields, get_dbset_name, get_key_fields, get_struct_name,
-    get_table_name,
+    get_table_name, is_custom_enum_attr,
 };
 pub fn get_update_builder_struct_name(input: &DeriveInput) -> Ident {
     let dbset_name = get_dbset_name(input);
@@ -80,8 +80,13 @@ pub fn get_update_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream
         "UPDATE {table_name} SET {set_fields} WHERE {query_builder_where_fields} RETURNING {all_fields_str};"
     );
 
-    let query_args = all_fields.clone().into_iter().map(|(name, _, _)| {
-        quote! { self.updatable.#name, }
+    let query_args = all_fields.clone().into_iter().map(|(name, ty, attrs)| {
+        let is_custom_enum = attrs.iter().any(is_custom_enum_attr);
+        if is_custom_enum {
+            quote! { self.updatable.#name as #ty, }
+        } else {
+            quote! { self.updatable.#name, }
+        }
     });
 
     let update_method = quote! {
