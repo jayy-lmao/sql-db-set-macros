@@ -42,7 +42,7 @@ pub fn dbset_derive(input: TokenStream) -> TokenStream {
     let expanded = quote! {
 
         mod #module_name {
-            use super::#struct_name ;
+            use super::* ;
 
             pub struct Set;
             pub struct NotSet;
