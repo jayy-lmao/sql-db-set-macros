@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "INSERT INTO users(id, name, details, email, status) VALUES ($1, $2, $3, $4, $5) RETURNING id, name, details, email, status as \"status:UserStatus\";",
+  "query": "UPDATE users SET name = $2, details = $3, email = $4, status = $5 WHERE id = $1 RETURNING id, name, details, email, status AS \"status:UserStatus\";",
   "describe": {
     "columns": [
       {
@@ -66,5 +66,5 @@
       false
     ]
   },
-  "hash": "1b9642cb19f2ce7ec772585175e80124993fe5c318ce0fa73c355f59119851a9"
+  "hash": "afebaf1e1b8236bc9ae2fd5e038cdd21edb81eb12e93ff8f04a9949c30e4e3b5"
 }

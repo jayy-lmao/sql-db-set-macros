@@ -48,19 +48,19 @@ async fn prepare_db() -> (Container<'static, TestPostgres>, Pool<Postgres>) {
         .expect("Could not initialise db");
 
     sqlx::query(
-        "INSERT INTO users (name, id, email) VALUES ('bob', 'user-1', 'bob@bob.com', 'verified');",
+        "INSERT INTO users (name, id, email, status) VALUES ('bob', 'user-1', 'bob@bob.com', 'verified');",
     )
     .execute(&pool)
     .await
     .expect("Could not initialise db");
 
-    sqlx::query("INSERT INTO users (name, id, email, details) VALUES ('bob', 'user-2', 'bobo@bob.com', 'the best bob', 'unverified');")
+    sqlx::query("INSERT INTO users (name, id, email, details, status) VALUES ('bob', 'user-2', 'bobo@bob.com', 'the best bob', 'unverified');")
         .execute(&pool)
         .await
         .expect("Could not initialise db");
 
     sqlx::query(
-        "INSERT INTO users (name, id, email) VALUES ('alice', 'user-3', 'alice@alice.com', 'verified');",
+        "INSERT INTO users (name, id, email, status) VALUES ('alice', 'user-3', 'alice@alice.com', 'verified');",
     )
     .execute(&pool)
     .await
