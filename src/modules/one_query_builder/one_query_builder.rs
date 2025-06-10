@@ -32,7 +32,13 @@ pub fn get_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream {
     let builder_struct_generics = all_required_insert_fields
         .clone()
         .map(|(field_name, _)| {
-            let gen_name_pascal = quote::format_ident!("{}", field_name.to_string().from_case(Case::Snake).to_case(Case::Pascal));
+            let gen_name_pascal = quote::format_ident!(
+                "{}",
+                field_name
+                    .to_string()
+                    .from_case(Case::Snake)
+                    .to_case(Case::Pascal)
+            );
             quote! {
                 #gen_name_pascal = NotSet,
             }
@@ -58,7 +64,12 @@ pub fn get_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream {
         }]);
 
     let phantom_struct_fields = all_required_insert_fields.clone().map(|(name, _)| {
-                    let gen_name_pascal = quote::format_ident!("{}", name.to_string().from_case(Case::Snake).to_case(Case::Pascal));
+        let gen_name_pascal = quote::format_ident!(
+            "{}",
+            name.to_string()
+                .from_case(Case::Snake)
+                .to_case(Case::Pascal)
+        );
         let ph_name = quote::format_ident!("_{}", name);
         quote! { #ph_name: std::marker::PhantomData::<#gen_name_pascal>, }
     });
@@ -84,7 +95,6 @@ pub fn get_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream {
     let initial_struct_fields = all_query_one_fields
         .clone()
         .map(|(name, _)| {
-
             quote! { #name: None, }
         })
         .chain(vec![quote! {
@@ -126,17 +136,11 @@ pub fn get_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream {
             let ph_field =
             if inner_field_type.is_none() {
                 if is_unique_field  {
-                quote! { 
-                    _unique_fields: std::marker::PhantomData::<Set>,
-                } 
-
+                quote! { _unique_fields: std::marker::PhantomData::<Set>, }
                 } else {
-                quote! { #ph_name: std::marker::PhantomData::<Set>, } 
+                quote! { #ph_name: std::marker::PhantomData::<Set>, }
                 }
-            } else { 
-                quote! { }
-            };
-            
+            } else { quote!{} };
             let remaining_fill = fill_other_fields
                 .clone()
                 .filter(|(other_field_name, _)| *other_field_name != field_name)
@@ -167,7 +171,6 @@ pub fn get_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream {
                 }
                 quote!{ NotSet, }
             }).chain(vec![quote!{NotSet}]);
-            
             let generics_out = all_required_insert_fields.clone().map(|(gen_name, _)|{
                 if gen_name != field_name {
                     if !is_unique_field  {
@@ -188,7 +191,7 @@ pub fn get_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream {
                 .clone()
                 .filter(|(other_field_name, _)| *other_field_name != field_name)
                 .map(|(_, value)| value).chain( if is_unique_field {vec![]} else {vec![
-                    quote!{ 
+                    quote!{
                 _unique_fields: std::marker::PhantomData::<NotSet>,
                     }
 
@@ -305,7 +308,7 @@ pub fn get_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream {
     let key_query_args = key_fields.clone().into_iter().map(|(name, _)| {
         quote! { self.#name, }
     });
-    let key_query_args_2 = key_query_args .clone();
+    let key_query_args_2 = key_query_args.clone();
 
     let key_fetch_one = if !key_fields.is_empty() {
         let query = format!("SELECT {all_fields_str} FROM {table_name} WHERE {key_query_builder_fields_where_clause}");
