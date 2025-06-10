@@ -70,7 +70,7 @@ pub fn get_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream {
                 let is_custom_enum = attrs.iter().any(is_custom_enum_attr);
                 if is_custom_enum {
                     quote! {
-                        self.#field_name as #field_type,
+                        self.#field_name as Option<#field_type>,
                     }
                 } else {
                     quote! {

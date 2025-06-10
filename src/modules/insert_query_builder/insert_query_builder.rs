@@ -4,8 +4,8 @@ use quote::{quote, ToTokens};
 use syn::{Attribute, DeriveInput, Type};
 
 use crate::common::utils::{
-    get_all_fields, get_auto_fields, get_dbset_name, get_inner_option_type, get_struct_name,
-    get_table_name, is_custom_enum_attr,
+    get_all_fields, get_auto_fields, get_dbset_name, get_inner_option_type,
+    get_query_fields_string, get_struct_name, get_table_name, is_custom_enum_attr,
 };
 pub fn get_insert_builder_struct_name(input: &DeriveInput) -> Ident {
     let dbset_name = get_dbset_name(input);
@@ -190,11 +190,12 @@ pub fn get_insert_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream
         quote! { Set, }
     });
 
-    let all_fields_str = all_fields
-        .iter()
-        .map(|(field_name, _, _)| field_name.to_string())
-        .collect::<Vec<_>>()
-        .join(", ");
+    // let all_fields_str = all_fields
+    //     .iter()
+    //     .map(|(field_name, _, _)| field_name.to_string())
+    //     .collect::<Vec<_>>()
+    //     .join(", ");
+    let all_fields_str = get_query_fields_string(input);
 
     let all_insert_fields_str = all_insert_fields
         .clone()
@@ -214,7 +215,7 @@ pub fn get_insert_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream
     let query_args = all_insert_fields.clone().map(|(name, ty, attrs)| {
         let is_custom_enum = attrs.iter().any(is_custom_enum_attr);
         if is_custom_enum {
-            quote! { self.#name as #ty, }
+            quote! { self.#name as Option<#ty>, }
         } else {
             quote! { self.#name, }
         }
