@@ -50,7 +50,7 @@ impl AccountDbSetUpdateBuilderWithData {
     ) -> Result<Account, sqlx::Error> {
 
         sqlx::query_as!(Account, "UPDATE users SET email = $2 WHERE id = $1 RETURNING id, email;",
-            self.updatable.email,
+            self.updatable.id, self.updatable.email,
         ).fetch_one(executor).await
     }
 }
