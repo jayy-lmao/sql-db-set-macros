@@ -3,11 +3,9 @@ use db_set_macros::DbSet;
 use crate::harness::get_db_pool;
 
 #[derive(sqlx::Type, Debug, Clone)]
-#[sqlx(type_name = "user_status")]
+#[sqlx(type_name = "user_status", rename_all = "snake_case")]
 pub enum UserStatus {
-    #[sqlx(rename = "verified")]
     Verified,
-    #[sqlx(rename = "Unverified")]
     Unverified,
 }
 
@@ -20,6 +18,7 @@ pub struct User {
     details: Option<String>,
     #[unique]
     email: String,
+    #[custom_enum]
     status: UserStatus,
 }
 
@@ -44,7 +43,7 @@ async fn test_query_as_user() -> Result<(), String> {
 
     let user: User = sqlx::query_as!(
         User,
-        "SELECT id, name, email, details, status FROM users LIMIT 1;"
+        "SELECT id, name, email, details, status as \"status:UserStatus\" FROM users LIMIT 1;"
     )
     .fetch_one(pool)
     .await
@@ -111,7 +110,7 @@ async fn test_insert_users() -> Result<(), String> {
 
     let matched_user = sqlx::query_as!(
         User,
-        "SELECT id, name, email, details, status FROM users WHERE id = 'id-3';"
+        "SELECT id, name, email, details, status AS \"status:UserStatus\" FROM users WHERE id = 'id-3';"
     )
     .fetch_one(pool)
     .await
@@ -128,7 +127,7 @@ async fn test_update_users() -> Result<(), String> {
 
     let mut user = sqlx::query_as!(
         User,
-        "SELECT id, name, email, details, status FROM users WHERE id = 'user-2';"
+        "SELECT id, name, email, details, status AS \"status:UserStatus\" FROM users WHERE id = 'user-2';"
     )
     .fetch_one(pool)
     .await
@@ -144,7 +143,7 @@ async fn test_update_users() -> Result<(), String> {
 
     let same_user_again = sqlx::query_as!(
         User,
-        "SELECT id, name, email, details, status FROM users WHERE id = 'user-2';"
+        "SELECT id, name, email, details, status AS \"status:UserStatus\" FROM users WHERE id = 'user-2';"
     )
     .fetch_one(pool)
     .await
@@ -173,7 +172,7 @@ async fn test_delete_users() -> Result<(), String> {
 
     let matched_user = sqlx::query_as!(
         User,
-        "SELECT id, name, email, details, status FROM users WHERE id = 'id-6';"
+        "SELECT id, name, email, details, status as \"status:UserStatus\" FROM users WHERE id = 'id-6';"
     )
     .fetch_optional(pool)
     .await

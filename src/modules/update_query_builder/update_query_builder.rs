@@ -1,6 +1,6 @@
 use proc_macro2::Ident;
 use quote::quote;
-use syn::{DeriveInput, Type};
+use syn::{Attribute, DeriveInput, Type};
 
 use crate::common::utils::{
     get_all_fields, get_auto_fields, get_dbset_name, get_key_fields, get_struct_name,
@@ -19,14 +19,14 @@ pub fn get_update_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream
     let auto_fields = get_auto_fields(input);
     let all_fields_str = all_fields
         .iter()
-        .map(|(field_name, _)| field_name.to_string())
+        .map(|(field_name, _, _)| field_name.to_string())
         .collect::<Vec<_>>()
         .join(", ");
 
-    let is_not_auto_field = |(field, _): &(&proc_macro2::Ident, &Type)| {
+    let is_not_auto_field = |(field, _, _): &(&proc_macro2::Ident, &Type, &Vec<Attribute>)| {
         !auto_fields
             .iter()
-            .any(|(auto_field, _)| auto_field == field)
+            .any(|(auto_field, _, _)| auto_field == field)
     };
 
     let all_update_fields = all_fields.iter().filter(|&x| is_not_auto_field(x));
@@ -70,9 +70,9 @@ pub fn get_update_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream
 
     let set_fields = all_fields
         .iter()
-        .filter(|(ident, _)| !key_fields.iter().any(|(kf_ident, _)| kf_ident == ident))
+        .filter(|(ident, _, _)| !key_fields.iter().any(|(kf_ident, _)| kf_ident == ident))
         .enumerate()
-        .map(|(index, (field_name, _))| format!("{} = ${}", field_name, index + where_size + 1))
+        .map(|(index, (field_name, _, _))| format!("{} = ${}", field_name, index + where_size + 1))
         .collect::<Vec<_>>()
         .join(", ");
 
@@ -80,7 +80,7 @@ pub fn get_update_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream
         "UPDATE {table_name} SET {set_fields} WHERE {query_builder_where_fields} RETURNING {all_fields_str};"
     );
 
-    let query_args = all_fields.clone().into_iter().map(|(name, _)| {
+    let query_args = all_fields.clone().into_iter().map(|(name, _, _)| {
         quote! { self.updatable.#name, }
     });
 

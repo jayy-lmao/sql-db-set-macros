@@ -1,10 +1,15 @@
 use std::str::FromStr;
 
 use proc_macro2::TokenStream;
+use quote::ToTokens;
 use syn::{
     meta::ParseNestedMeta, parse2, punctuated::Punctuated, token::Comma, Attribute, Data,
     DeriveInput, Field, Fields, File, Ident, Meta, PathArguments, Type,
 };
+
+pub enum Additional {
+    IsEnum(String),
+}
 
 pub fn derive_input_from_string(input: &str) -> Result<DeriveInput, syn::Error> {
     let token_stream = TokenStream::from_str(input)?;
@@ -33,6 +38,13 @@ pub fn is_auto_attr(attr: &Attribute) -> bool {
 pub fn is_unique_attr(attr: &Attribute) -> bool {
     match attr.meta {
         Meta::Path(ref path) => path.is_ident("unique"),
+        _ => false,
+    }
+}
+
+pub fn is_custom_enum_attr(attr: &Attribute) -> bool {
+    match attr.meta {
+        Meta::Path(ref path) => path.is_ident("custom_enum"),
         _ => false,
     }
 }
@@ -171,7 +183,7 @@ pub fn get_field_names(input: &DeriveInput) -> Vec<&Ident> {
     field_names
 }
 
-pub fn get_auto_fields(input: &DeriveInput) -> Vec<(&Ident, &Type)> {
+pub fn get_auto_fields(input: &DeriveInput) -> Vec<(&Ident, &Type, &Vec<Attribute>)> {
     let fields = get_fields(input);
     let mut auto_fields = Vec::new();
 
@@ -182,7 +194,7 @@ pub fn get_auto_fields(input: &DeriveInput) -> Vec<(&Ident, &Type)> {
             let is_auto = field.attrs.iter().any(is_auto_attr);
 
             if is_auto {
-                auto_fields.push((field_name, field_type));
+                auto_fields.push((field_name, field_type, &field.attrs));
             }
         }
     }
@@ -225,7 +237,7 @@ pub fn get_unique_fields(input: &DeriveInput) -> Vec<(&Ident, &Type)> {
     unique_fields
 }
 
-pub fn get_all_fields(input: &DeriveInput) -> Vec<(&Ident, &Type)> {
+pub fn get_all_fields(input: &DeriveInput) -> Vec<(&Ident, &Type, &Vec<Attribute>)> {
     let mut all_fields = Vec::new();
     let fields = get_fields(input);
     for field in fields {
@@ -233,10 +245,33 @@ pub fn get_all_fields(input: &DeriveInput) -> Vec<(&Ident, &Type)> {
         if let Some(field_name) = field_name_maybe {
             let field_type = &field.ty;
 
-            all_fields.push((field_name, field_type));
+            all_fields.push((field_name, field_type, &field.attrs));
         }
     }
     all_fields
+}
+
+pub fn get_query_fields_string(input: &DeriveInput) -> String {
+    let mut all_fields = Vec::new();
+    let fields = get_fields(input);
+    for field in fields {
+        let field_name_maybe = field.ident.as_ref();
+        if let Some(field_name) = field_name_maybe {
+            let field_type = &field.ty;
+
+            let field_name_string = field_name.to_string();
+            let is_custom_enum = field.attrs.iter().any(is_custom_enum_attr);
+            if is_custom_enum {
+                let field_type_string = field_type.to_token_stream().to_string();
+                let custom_enum_field =
+                    format!("{field_name_string} AS \"{field_name_string}:{field_type_string}\"");
+                all_fields.push(custom_enum_field);
+            } else {
+                all_fields.push(field_name.to_string())
+            }
+        }
+    }
+    all_fields.join(", ")
 }
 
 pub fn join_field_names(fields: &[(&Ident, &Type)], separator: &str) -> String {

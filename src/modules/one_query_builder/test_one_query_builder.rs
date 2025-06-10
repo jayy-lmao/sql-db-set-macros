@@ -121,6 +121,114 @@ impl UserDbSetOneQueryBuilder<NotSet, Set> {
     Ok(())
 }
 
+#[test]
+fn can_parse_user_struct_with_custom_enum() -> Result<(), String> {
+    let input_str = r#"
+#[dbset(table_name = "users")]
+pub struct User {
+    #[key]
+    id: String,
+    name: String,
+    details: Option<String>,
+    #[unique]
+    email: String, 
+    #[custom_enum]
+    status: UserStatus
+    }
+    "#;
+
+    let output = r#"
+
+pub struct UserDbSetOneQueryBuilder<Id = NotSet, UniqueFields = NotSet> {
+    id: Option<String>,
+    email: Option<String>,
+    _unique_fields: std::marker::PhantomData<UniqueFields>,
+    _id: std::marker::PhantomData<Id>,
+}
+impl UserDbSetOneQueryBuilder {
+    pub fn new() -> UserDbSetOneQueryBuilder<NotSet, NotSet> {
+        Self {
+            id: None,
+            email: None,
+            _unique_fields: std::marker::PhantomData::<NotSet>,
+            _id: std::marker::PhantomData::<NotSet>,
+        }
+    }
+}
+impl UserDbSetOneQueryBuilder<NotSet, NotSet> {
+    pub fn id_eq(self, id: String) -> UserDbSetOneQueryBuilder<Set, NotSet> {
+        UserDbSetOneQueryBuilder {
+            id: Some(id),
+            email: self.email,
+            _id: std::marker::PhantomData::<Set>,
+            _unique_fields: std::marker::PhantomData::<NotSet>,
+        }
+    }
+}
+impl UserDbSetOneQueryBuilder<NotSet, NotSet> {
+    pub fn email_eq(self, email: String) -> UserDbSetOneQueryBuilder<NotSet, Set> {
+        UserDbSetOneQueryBuilder {
+            email: Some(email),
+            id: self.id,
+            _unique_fields: std::marker::PhantomData::<Set>,
+            _id: self._id,
+        }
+    }
+}
+impl UserDbSetOneQueryBuilder<Set, NotSet> {
+    pub async fn fetch_optional<'e, E: sqlx::PgExecutor<'e>>(
+        self,
+        executor: E,
+    ) -> Result<Option<User>, sqlx::Error> {
+        sqlx::query_as!(
+            User, "SELECT id, name, details, email, status AS \"status:UserStatus\" FROM users WHERE id = $1", self.id,
+        )
+            .fetch_optional(executor)
+            .await
+    }
+    pub async fn fetch_one<'e, E: sqlx::PgExecutor<'e>>(
+        self,
+        executor: E,
+    ) -> Result<User, sqlx::Error> {
+        sqlx::query_as!(
+            User, "SELECT id, name, details, email, status AS \"status:UserStatus\" FROM users WHERE id = $1", self.id,
+        )
+            .fetch_one(executor)
+            .await
+    }
+}
+impl UserDbSetOneQueryBuilder<NotSet, Set> {
+    pub async fn fetch_optional<'e, E: sqlx::PgExecutor<'e>>(
+        self,
+        executor: E,
+    ) -> Result<Option<User>, sqlx::Error> {
+        sqlx::query_as!(
+            User,
+            "SELECT id, name, details, email, status AS \"status:UserStatus\" FROM users WHERE (email = $1 OR $1 is null)",
+            self.email,
+        )
+            .fetch_optional(executor)
+            .await
+    }
+    pub async fn fetch_one<'e, E: sqlx::PgExecutor<'e>>(
+        self,
+        executor: E,
+    ) -> Result<User, sqlx::Error> {
+        sqlx::query_as!(
+            User,
+            "SELECT id, name, details, email, status AS \"status:UserStatus\" FROM users WHERE (email = $1 OR $1 is null)",
+            self.email,
+        )
+            .fetch_one(executor)
+            .await
+    }
+}
+    "#;
+
+    compare_computed_to_expected(input_str, output);
+    Ok(())
+}
+
 #[ignore]
 #[test]
 fn can_parse_order_with_key_into_one_builder() -> Result<(), String> {

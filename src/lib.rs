@@ -13,7 +13,7 @@ use modules::many_query_builder;
 
 use common::utils::{self};
 
-#[proc_macro_derive(DbSet, attributes(unique, dbset, relation, auto, key))]
+#[proc_macro_derive(DbSet, attributes(unique, dbset, relation, auto, key, custom_enum))]
 pub fn dbset_derive(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
 
