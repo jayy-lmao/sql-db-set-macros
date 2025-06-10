@@ -99,7 +99,7 @@ impl FavouritedProductDbSetManyQueryBuilder {
     pub async fn fetch_all<'e, E: sqlx::PgExecutor<'e>>(
         self,
         executor: E,
-    ) -> Result<Vec<User>, sqlx::Error> {
+    ) -> Result<Vec<FavouritedProduct>, sqlx::Error> {
         sqlx::query_as!(
             FavouritedProduct,
             "SELECT product_id, user_id FROM favourite_products WHERE (product_id = $1 or $1 is null) AND (user_id = $2 or $2 is null)",
