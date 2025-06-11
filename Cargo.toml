@@ -8,6 +8,7 @@ edition = "2021"
 description = "A derive for some ORM functions utilising SQLX"
 license = "MIT OR Apache-2.0"
 readme = "README.md"
+repository = "https://github.com/jayy-lmao/sql-db-set-macros"
 
 [dependencies]
 convert_case = "0.8.0"
