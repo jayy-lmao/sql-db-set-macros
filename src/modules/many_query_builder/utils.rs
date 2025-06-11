@@ -4,7 +4,10 @@ use syn::{DeriveInput, Type};
 
 use crate::{
     common::utils::get_key_fields,
-    utils::{get_dbset_name, get_fields, get_inner_option_type, is_key_attr, is_unique_attr},
+    utils::{
+        get_dbset_name, get_fields, get_inner_option_type, is_custom_enum_attr, is_key_attr,
+        is_unique_attr,
+    },
 };
 
 pub fn get_many_query_builder_struct_name(input: &DeriveInput) -> Ident {
@@ -94,6 +97,7 @@ pub fn get_many_query_builder_methods(input: &DeriveInput) -> Vec<proc_macro2::T
         if let Some(field_name) = field_name_maybe {
             let field_type = &field.ty;
             let is_unique = field.attrs.iter().any(is_unique_attr);
+            let is_custom_enum = field.attrs.iter().any(is_custom_enum_attr);
             let is_key = field.attrs.iter().any(is_key_attr);
 
             if !is_unique && !is_key {

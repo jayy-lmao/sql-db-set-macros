@@ -37,7 +37,8 @@ Can currently:
 - [x] Insert (ignoring auto fields)
 - [x] Update
 - [x] Delete
-
+- [x] Support for enums
+- [x] Create a version of https://github.com/jayy-lmao/sql-gen for generating these
 
 ### Roadmap
 
@@ -47,8 +48,8 @@ TODO:
 - [x] Update
 - [x] Delete
 - [~] Release early version!
+- [x] Support for optional enums
 - [ ] Limit / Offset
-- [ ] Create a version of https://github.com/jayy-lmao/sql-gen for generating these
 - [ ] Do more than just `eq` to match fields (map of ops for each type)
 
 ### Examples

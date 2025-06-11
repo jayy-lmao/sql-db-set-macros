@@ -4,8 +4,8 @@ use quote::quote;
 use syn::DeriveInput;
 
 use crate::common::utils::{
-    get_all_fields, get_dbset_name, get_inner_option_type, get_key_fields, get_struct_name,
-    get_table_name, get_unique_fields,
+    get_all_fields, get_dbset_name, get_inner_option_type, get_key_fields, get_query_fields_string,
+    get_struct_name, get_table_name, get_unique_fields,
 };
 pub fn get_one_builder_struct_name(input: &DeriveInput) -> Ident {
     let dbset_name = get_dbset_name(input);
@@ -234,11 +234,12 @@ pub fn get_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream {
         })
         .chain(vec![quote! { Set }]);
 
-    let all_fields_str = all_fields
-        .iter()
-        .map(|(field_name, _)| field_name.to_string())
-        .collect::<Vec<_>>()
-        .join(", ");
+    // let all_fields_str = all_fields
+    //     .iter()
+    //     .map(|(field_name, _)| field_name.to_string())
+    //     .collect::<Vec<_>>()
+    //     .join(", ");
+    let all_fields_str = get_query_fields_string(input);
 
     let key_query_builder_fields_where_clause = key_fields
         .iter()

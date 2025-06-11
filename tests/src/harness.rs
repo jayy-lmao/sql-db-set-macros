@@ -28,23 +28,39 @@ async fn prepare_db() -> (Container<'static, TestPostgres>, Pool<Postgres>) {
         .await
         .expect("Could not connect to postgres");
 
-    sqlx::query("CREATE TABLE IF NOT EXISTS users (name text not null, id text not null, email text not null, details text);")
-        .execute(&pool)
-        .await
-        .expect("Could not initialise db");
-
-    sqlx::query("INSERT INTO users (name, id, email) VALUES ('bob', 'user-1', 'bob@bob.com');")
-        .execute(&pool)
-        .await
-        .expect("Could not initialise db");
-
-    sqlx::query("INSERT INTO users (name, id, email, details) VALUES ('bob', 'user-2', 'bobo@bob.com', 'the best bob');")
+    sqlx::query(
+        r#"
+            DO $$
+            BEGIN
+              IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'user_status') THEN
+                CREATE TYPE user_status AS ENUM ('verified', 'unverified');
+              END IF;
+            END
+            $$;
+    "#,
+    )
+    .execute(&pool)
+    .await
+    .expect("Could not initialise db");
+    sqlx::query("CREATE TABLE IF NOT EXISTS users (name text not null, id text not null, email text not null, details text, status user_status not null);")
         .execute(&pool)
         .await
         .expect("Could not initialise db");
 
     sqlx::query(
-        "INSERT INTO users (name, id, email) VALUES ('alice', 'user-3', 'alice@alice.com');",
+        "INSERT INTO users (name, id, email, status) VALUES ('bob', 'user-1', 'bob@bob.com', 'verified');",
+    )
+    .execute(&pool)
+    .await
+    .expect("Could not initialise db");
+
+    sqlx::query("INSERT INTO users (name, id, email, details, status) VALUES ('bob', 'user-2', 'bobo@bob.com', 'the best bob', 'unverified');")
+        .execute(&pool)
+        .await
+        .expect("Could not initialise db");
+
+    sqlx::query(
+        "INSERT INTO users (name, id, email, status) VALUES ('alice', 'user-3', 'alice@alice.com', 'verified');",
     )
     .execute(&pool)
     .await

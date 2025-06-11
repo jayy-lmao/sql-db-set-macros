@@ -1,9 +1,12 @@
 use proc_macro2::Ident;
 use quote::quote;
-use syn::{DeriveInput, Type};
+use syn::{Attribute, DeriveInput, Type};
 
 use crate::{
-    common::utils::{get_all_fields, get_key_fields, get_unique_fields},
+    common::utils::{
+        get_all_fields, get_key_fields, get_query_fields_string, get_unique_fields,
+        is_custom_enum_attr,
+    },
     utils,
 };
 
@@ -22,8 +25,9 @@ pub fn get_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream {
     let unique_fields = get_unique_fields(input);
     let key_fields = get_key_fields(input);
     let all_fields = get_all_fields(input);
+    let query_fields_string = get_query_fields_string(input);
 
-    let fields_to_include: Vec<(&Ident, &Type)> = {
+    let fields_to_include: Vec<(&Ident, &Type, &Vec<Attribute>)> = {
         let mut fields_to_include = vec![];
         for field in all_fields.clone() {
             if unique_fields.iter().any(|(ufn, _)| *ufn == field.0) {
@@ -41,7 +45,7 @@ pub fn get_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream {
         let query_builder_where_fields = fields_to_include
             .iter()
             .enumerate()
-            .map(|(index, (field_name, _))| {
+            .map(|(index, (field_name, _, _))| {
                 format!(
                     "({} = ${} or ${} is null)",
                     field_name,
@@ -52,25 +56,28 @@ pub fn get_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream {
             .collect::<Vec<_>>()
             .join(" AND ");
 
-        let all_fields_str = all_fields
-            .iter()
-            .map(|(field_name, _)| field_name.to_string())
-            .collect::<Vec<_>>()
-            .join(", ");
-
         let full_where_clause = if !query_builder_where_fields.is_empty() {
             format!("WHERE {query_builder_where_fields}")
         } else {
             String::new()
         };
 
-        let query = format!("SELECT {all_fields_str} FROM {table_name} {full_where_clause}");
+        let query = format!("SELECT {query_fields_string} FROM {table_name} {full_where_clause}");
 
-        let query_args = fields_to_include.iter().map(|(field_name, _field_type)| {
-            quote! {
-                self.#field_name,
-            }
-        });
+        let query_args = fields_to_include
+            .iter()
+            .map(|(field_name, field_type, attrs)| {
+                let is_custom_enum = attrs.iter().any(is_custom_enum_attr);
+                if is_custom_enum {
+                    quote! {
+                        self.#field_name as Option<#field_type>,
+                    }
+                } else {
+                    quote! {
+                        self.#field_name,
+                    }
+                }
+            });
 
         let res = quote! {
             pub async fn fetch_all<'e, E: sqlx::PgExecutor<'e>>(

@@ -1,10 +1,10 @@
 use proc_macro2::Ident;
 use quote::quote;
-use syn::{DeriveInput, Type};
+use syn::{Attribute, DeriveInput, Type};
 
 use crate::common::utils::{
-    get_all_fields, get_auto_fields, get_dbset_name, get_key_fields, get_struct_name,
-    get_table_name,
+    get_all_fields, get_auto_fields, get_dbset_name, get_key_fields, get_query_fields_string,
+    get_struct_name, get_table_name, is_custom_enum_attr,
 };
 pub fn get_update_builder_struct_name(input: &DeriveInput) -> Ident {
     let dbset_name = get_dbset_name(input);
@@ -17,16 +17,12 @@ pub fn get_update_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream
     let builder_struct_name = get_update_builder_struct_name(input);
     let all_fields = get_all_fields(input);
     let auto_fields = get_auto_fields(input);
-    let all_fields_str = all_fields
-        .iter()
-        .map(|(field_name, _)| field_name.to_string())
-        .collect::<Vec<_>>()
-        .join(", ");
+    let all_fields_str = get_query_fields_string(input);
 
-    let is_not_auto_field = |(field, _): &(&proc_macro2::Ident, &Type)| {
+    let is_not_auto_field = |(field, _, _): &(&proc_macro2::Ident, &Type, &Vec<Attribute>)| {
         !auto_fields
             .iter()
-            .any(|(auto_field, _)| auto_field == field)
+            .any(|(auto_field, _, _)| auto_field == field)
     };
 
     let all_update_fields = all_fields.iter().filter(|&x| is_not_auto_field(x));
@@ -70,9 +66,9 @@ pub fn get_update_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream
 
     let set_fields = all_fields
         .iter()
-        .filter(|(ident, _)| !key_fields.iter().any(|(kf_ident, _)| kf_ident == ident))
+        .filter(|(ident, _, _)| !key_fields.iter().any(|(kf_ident, _)| kf_ident == ident))
         .enumerate()
-        .map(|(index, (field_name, _))| format!("{} = ${}", field_name, index + where_size + 1))
+        .map(|(index, (field_name, _, _))| format!("{} = ${}", field_name, index + where_size + 1))
         .collect::<Vec<_>>()
         .join(", ");
 
@@ -80,8 +76,13 @@ pub fn get_update_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream
         "UPDATE {table_name} SET {set_fields} WHERE {query_builder_where_fields} RETURNING {all_fields_str};"
     );
 
-    let query_args = all_fields.clone().into_iter().map(|(name, _)| {
-        quote! { self.updatable.#name, }
+    let query_args = all_fields.clone().into_iter().map(|(name, ty, attrs)| {
+        let is_custom_enum = attrs.iter().any(is_custom_enum_attr);
+        if is_custom_enum {
+            quote! { self.updatable.#name as #ty, }
+        } else {
+            quote! { self.updatable.#name, }
+        }
     });
 
     let update_method = quote! {
