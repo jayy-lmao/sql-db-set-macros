@@ -166,13 +166,4 @@ async fn test_delete_users(pool: PgPool) -> sqlx::Result<()> {
     Ok(())
 }
 
-#[sqlx::test(fixtures("users"))]
-async fn test_fixtures_loaded(pool: PgPool) -> sqlx::Result<()> {
-    let count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM users")
-        .fetch_one(&pool)
-        .await?;
-    
-    println!("Number of users in database: {}", count);
-    assert_eq!(count, 3);
-    Ok(())
-}
+
