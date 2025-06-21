@@ -37,7 +37,8 @@ Can currently:
 - [x] Insert (ignoring auto fields)
 - [x] Update
 - [x] Delete
-- [x] Support for enums
+- [x] Support for enums with `#[custom_enum]` attribute for proper PostgreSQL enum handling
+- [x] Support for optional enums
 - [x] Create a version of https://github.com/jayy-lmao/sql-gen for generating these
 
 ### Roadmap
@@ -55,6 +56,14 @@ TODO:
 ### Examples
 
 ```rs
+// First, define your custom enum if needed
+#[derive(sqlx::Type, Debug, Clone)]
+#[sqlx(type_name = "user_status", rename_all = "snake_case")]
+pub enum UserStatus {
+    Verified,
+    Unverified,
+}
+
 #[derive(DbSet, Debug)] // DbSet also implements sqlx::FromRow by default
 #[dbset(table_name = "users")] // Used for queries, will be used for codegen
 pub struct User {
@@ -64,6 +73,8 @@ pub struct User {
     details: Option<String>, // wont be required for insert
     #[unique]
     email: String, // Will generate `::one` queries as it's unique
+    #[custom_enum] // Marks this field as a PostgreSQL enum for proper SQL handling
+    status: UserStatus, // Will be correctly cast in SQL queries
 }
 
 // Fetch one user
@@ -109,6 +120,7 @@ let inserted_user = UserDbSet::insert()
     .id("id-3".to_string())
     .email("steven@stevenson.com".to_string())
     .name("steven".to_string())
+    .status(UserStatus::Verified)
     .insert(pool) // Due to type-state insert can't be called until all non-nullable (besides auto)  fields have been set
     .await?;
 
