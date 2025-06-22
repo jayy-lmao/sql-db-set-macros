@@ -5,6 +5,10 @@ test: test-unit test-integration
 test-unit:
 	cargo nextest run 
 
+setup-db-migrations:
+ cargo install sqlx-cli --no-default-features --features native-tls,postgres --version 0.8.3
+
+
 test-integration:
 	@echo "Starting temporary Postgres container for integration tests..."
 	@docker run -d --name test-postgres-$$(date +%s) \

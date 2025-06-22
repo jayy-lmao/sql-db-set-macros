@@ -45,5 +45,8 @@ jobs:
         with:
           tool: nextest
 
+      - name: Install sqlx for makefile
+        run: make setup-db-migrations
+
       - name: Run integration tests in `tests`
         run: make test-integration
