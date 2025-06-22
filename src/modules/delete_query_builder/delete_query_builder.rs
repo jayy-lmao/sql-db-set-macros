@@ -14,7 +14,7 @@ pub fn get_delete_builder_struct_name(input: &DeriveInput) -> Ident {
 
 pub fn get_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream {
     let table_name = get_table_name(input);
-    let struct_name = get_struct_name(input);
+    let _struct_name = get_struct_name(input);
     let builder_struct_name = get_delete_builder_struct_name(input);
     let key_fields = get_key_fields(input);
     let unique_fields = get_unique_fields(input);

@@ -25,7 +25,7 @@ pub fn get_update_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream
             .any(|(auto_field, _, _)| auto_field == field)
     };
 
-    let all_update_fields = all_fields.iter().filter(|&x| is_not_auto_field(x));
+    let _all_update_fields = all_fields.iter().filter(|&x| is_not_auto_field(x));
     let builder_struct_name_with_data = quote::format_ident!("{}WithData", builder_struct_name);
 
     // Create Builder Struct

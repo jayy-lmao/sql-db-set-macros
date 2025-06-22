@@ -1,6 +1,6 @@
 use convert_case::{Case, Casing};
 use proc_macro2::Ident;
-use quote::{quote, ToTokens};
+use quote::quote;
 use syn::{Attribute, DeriveInput, Type};
 
 use crate::common::utils::{

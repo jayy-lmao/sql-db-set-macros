@@ -18,7 +18,7 @@ pub fn get_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream {
     let builder_struct_name = get_one_builder_struct_name(input);
     let key_fields = get_key_fields(input);
     let unique_fields = get_unique_fields(input);
-    let all_fields = get_all_fields(input);
+    let _all_fields = get_all_fields(input);
 
     let non_nullable_fields = key_fields
         .iter()

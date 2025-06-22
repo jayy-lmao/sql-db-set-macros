@@ -15,6 +15,7 @@ pub fn get_many_query_builder_struct_name(input: &DeriveInput) -> Ident {
     quote::format_ident!("{}ManyQueryBuilder", dbset_name)
 }
 
+#[allow(dead_code)]
 pub fn get_many_query_builder_fields(input: &DeriveInput) -> Vec<(&Ident, &Type)> {
     let fields = get_fields(input);
 
@@ -97,7 +98,7 @@ pub fn get_many_query_builder_methods(input: &DeriveInput) -> Vec<proc_macro2::T
         if let Some(field_name) = field_name_maybe {
             let field_type = &field.ty;
             let is_unique = field.attrs.iter().any(is_unique_attr);
-            let is_custom_enum = field.attrs.iter().any(is_custom_enum_attr);
+            let _is_custom_enum = field.attrs.iter().any(is_custom_enum_attr);
             let is_key = field.attrs.iter().any(is_key_attr);
 
             if !is_unique && !is_key {
