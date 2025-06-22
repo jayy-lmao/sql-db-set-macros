@@ -2,7 +2,6 @@ use proc_macro2::Ident;
 use quote::quote;
 use syn::{Attribute, DeriveInput, Type};
 
-use crate::modules::query_builder_shared as shared;
 use crate::{
     common::utils::{
         get_all_fields, get_key_fields, get_query_fields_string, get_unique_fields,
@@ -102,7 +101,7 @@ pub fn get_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream {
     };
 
     let query_builder_fetch = fetch_all_method(
-        &struct_name,
+        struct_name,
         &table_name,
         &query_fields_string,
         &fields_to_include,

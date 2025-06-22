@@ -29,7 +29,7 @@ impl FieldAnalysis {
         let is_auto = attributes.iter().any(crate::common::utils::is_auto_attr);
         let is_custom_enum = attributes.iter().any(is_custom_enum_attr);
         let is_optional = get_inner_option_type(&field_type).is_some();
-        let inner_type = get_inner_option_type(&field_type).map(|t| t.clone());
+        let inner_type = get_inner_option_type(&field_type).cloned();
 
         Self {
             name,

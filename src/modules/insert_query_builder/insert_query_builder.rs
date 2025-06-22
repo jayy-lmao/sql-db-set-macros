@@ -1,10 +1,10 @@
 use proc_macro2::Ident;
 use quote::quote;
-use syn::{Attribute, DeriveInput, Type};
+use syn::DeriveInput;
 
 use crate::common::utils::{
     get_all_fields, get_auto_fields, get_dbset_name, get_inner_option_type,
-    get_query_fields_string, get_struct_name, get_table_name, is_custom_enum_attr,
+    get_query_fields_string, get_struct_name, get_table_name,
 };
 use crate::modules::query_builder_shared as shared;
 

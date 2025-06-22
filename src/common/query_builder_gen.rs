@@ -401,7 +401,7 @@ impl QueryBuilderGenerator for StandardQueryBuilder {
                 ))
             }
             QueryType::One => {
-                let all_fields = format!("*"); // For one queries, select all fields
+                let all_fields = "*".to_string(); // For one queries, select all fields
                 let where_conditions = fields
                     .iter()
                     .enumerate()

@@ -7,7 +7,6 @@ use crate::common::utils::{
     get_dbset_name, get_inner_option_type, get_key_fields, get_struct_name, get_table_name,
     get_unique_fields,
 };
-use crate::modules::query_builder_shared as shared;
 pub fn get_delete_builder_struct_name(input: &DeriveInput) -> Ident {
     let dbset_name = get_dbset_name(input);
     quote::format_ident!("{}DeleteQueryBuilder", dbset_name)
