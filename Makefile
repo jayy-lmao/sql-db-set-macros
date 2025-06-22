@@ -3,10 +3,10 @@
 test: test-unit test-integration
 
 test-unit:
-	cargo nextest run 
+	@cargo nextest run 
 
 setup-db-migrations:
- cargo install sqlx-cli --no-default-features --features native-tls,postgres --version 0.8.3
+ @cargo install sqlx-cli --no-default-features --features native-tls,postgres --version 0.8.3
 
 
 test-integration:
