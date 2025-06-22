@@ -15,6 +15,65 @@ use super::utils::{
     get_many_query_builder_struct_fields_initial, get_many_query_builder_struct_name,
 };
 
+fn fetch_all_method<'a>(
+    struct_name: &Ident,
+    table_name: &str,
+    query_fields_string: &str,
+    fields_to_include: &[(&'a Ident, &'a Type, &'a Vec<Attribute>)],
+) -> proc_macro2::TokenStream {
+    let query_builder_where_fields = fields_to_include
+        .iter()
+        .enumerate()
+        .map(|(index, (field_name, _, _))| {
+            format!(
+                "({} = ${} or ${} is null)",
+                field_name,
+                index + 1,
+                index + 1
+            )
+        })
+        .collect::<Vec<_>>()
+        .join(" AND ");
+
+    let full_where_clause = if !query_builder_where_fields.is_empty() {
+        format!("WHERE {query_builder_where_fields}")
+    } else {
+        String::new()
+    };
+
+    let query = format!("SELECT {query_fields_string} FROM {table_name} {full_where_clause}");
+
+    let query_args = fields_to_include
+        .iter()
+        .map(|(field_name, field_type, attrs)| {
+            let is_custom_enum = attrs.iter().any(is_custom_enum_attr);
+            if is_custom_enum {
+                quote! {
+                    self.#field_name as Option<#field_type>,
+                }
+            } else {
+                quote! {
+                    self.#field_name,
+                }
+            }
+        });
+
+    quote! {
+        pub async fn fetch_all<'e, E: sqlx::PgExecutor<'e>>(
+            self,
+            executor: E,
+        ) -> Result<Vec<#struct_name>, sqlx::Error> {
+            sqlx::query_as!(
+                #struct_name,
+                #query,
+                #(#query_args)*
+            )
+            .fetch_all(executor)
+            .await
+        }
+    }
+}
+
 pub fn get_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream {
     let struct_name = utils::get_struct_name(input);
     let table_name = utils::get_table_name(input);
@@ -41,63 +100,12 @@ pub fn get_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream {
         fields_to_include
     };
 
-    let query_builder_fetch = {
-        let query_builder_where_fields = fields_to_include
-            .iter()
-            .enumerate()
-            .map(|(index, (field_name, _, _))| {
-                format!(
-                    "({} = ${} or ${} is null)",
-                    field_name,
-                    index + 1,
-                    index + 1
-                )
-            })
-            .collect::<Vec<_>>()
-            .join(" AND ");
-
-        let full_where_clause = if !query_builder_where_fields.is_empty() {
-            format!("WHERE {query_builder_where_fields}")
-        } else {
-            String::new()
-        };
-
-        let query = format!("SELECT {query_fields_string} FROM {table_name} {full_where_clause}");
-
-        let query_args = fields_to_include
-            .iter()
-            .map(|(field_name, field_type, attrs)| {
-                let is_custom_enum = attrs.iter().any(is_custom_enum_attr);
-                if is_custom_enum {
-                    quote! {
-                        self.#field_name as Option<#field_type>,
-                    }
-                } else {
-                    quote! {
-                        self.#field_name,
-                    }
-                }
-            });
-
-        let res = quote! {
-            pub async fn fetch_all<'e, E: sqlx::PgExecutor<'e>>(
-                self,
-                executor: E,
-            ) -> Result<Vec<#struct_name>, sqlx::Error> {
-
-                sqlx::query_as!(
-                    #struct_name,
-                    #query,
-                    #(#query_args)*
-                )
-                .fetch_all(executor)
-                .await
-            }
-
-
-        };
-        res
-    };
+    let query_builder_fetch = fetch_all_method(
+        &struct_name,
+        &table_name,
+        &query_fields_string,
+        &fields_to_include,
+    );
 
     quote! {
         pub struct #query_builder_struct_name {
@@ -106,8 +114,8 @@ pub fn get_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream {
 
         impl #query_builder_struct_name {
             pub fn new() -> Self {
-            Self {
-                #(#query_builder_struct_fields_initial),*
+                Self {
+                    #(#query_builder_struct_fields_initial),*
                 }
             }
             #(#query_builder_methods)*
