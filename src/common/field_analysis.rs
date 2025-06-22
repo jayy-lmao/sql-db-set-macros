@@ -99,7 +99,7 @@ pub fn get_key_fields_from_analysis(analyses: &[FieldAnalysis]) -> Vec<&FieldAna
 }
 
 /// Extract field names as strings
-pub fn extract_field_names(analyses: &[&FieldAnalysis]) -> Vec<String> {
+pub fn extract_field_names(analyses: &[FieldAnalysis]) -> Vec<String> {
     analyses.iter().map(|f| f.name.to_string()).collect()
 }
 
