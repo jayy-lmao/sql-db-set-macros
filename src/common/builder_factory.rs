@@ -4,12 +4,12 @@
 //! create a factory pattern for generating query builders.
 
 use proc_macro2::TokenStream;
-use syn::DeriveInput;
 use quote::quote;
+use syn::DeriveInput;
 
-use crate::common::query_builder_gen::{QueryBuilderGenerator, QueryType};
-use crate::common::modern_builders::ModernManyQueryBuilder;
 use crate::common::field_analysis::analyze_struct_fields;
+use crate::common::modern_builders::ModernManyQueryBuilder;
+use crate::common::query_builder_gen::{QueryBuilderGenerator, QueryType};
 
 /// Factory for creating different types of query builders
 pub struct QueryBuilderFactory;
@@ -38,7 +38,7 @@ impl QueryBuilderFactory {
     /// Generate all query builders for a struct
     pub fn generate_all_builders(input: &DeriveInput) -> TokenStream {
         let many_builder = Self::generate_builder(QueryType::Many, input);
-        
+
         // In a complete implementation, we'd generate all builder types
         quote! {
             #many_builder
@@ -50,24 +50,48 @@ impl QueryBuilderFactory {
     pub fn analyze_query_capabilities(input: &DeriveInput) -> String {
         let fields = analyze_struct_fields(input);
         let mut report = String::new();
-        
+
         report.push_str(&format!("Query capabilities for {}:\n", input.ident));
         report.push_str(&format!("  Total fields: {}\n", fields.len()));
-        
+
         let key_fields: Vec<_> = fields.iter().filter(|f| f.is_key).collect();
         let unique_fields: Vec<_> = fields.iter().filter(|f| f.is_unique).collect();
         let auto_fields: Vec<_> = fields.iter().filter(|f| f.is_auto).collect();
         let enum_fields: Vec<_> = fields.iter().filter(|f| f.is_custom_enum).collect();
-        
-        report.push_str(&format!("  Key fields: {} ({:?})\n", key_fields.len(), 
-            key_fields.iter().map(|f| f.name.to_string()).collect::<Vec<_>>()));
-        report.push_str(&format!("  Unique fields: {} ({:?})\n", unique_fields.len(),
-            unique_fields.iter().map(|f| f.name.to_string()).collect::<Vec<_>>()));
-        report.push_str(&format!("  Auto fields: {} ({:?})\n", auto_fields.len(),
-            auto_fields.iter().map(|f| f.name.to_string()).collect::<Vec<_>>()));
-        report.push_str(&format!("  Enum fields: {} ({:?})\n", enum_fields.len(),
-            enum_fields.iter().map(|f| f.name.to_string()).collect::<Vec<_>>()));
-        
+
+        report.push_str(&format!(
+            "  Key fields: {} ({:?})\n",
+            key_fields.len(),
+            key_fields
+                .iter()
+                .map(|f| f.name.to_string())
+                .collect::<Vec<_>>()
+        ));
+        report.push_str(&format!(
+            "  Unique fields: {} ({:?})\n",
+            unique_fields.len(),
+            unique_fields
+                .iter()
+                .map(|f| f.name.to_string())
+                .collect::<Vec<_>>()
+        ));
+        report.push_str(&format!(
+            "  Auto fields: {} ({:?})\n",
+            auto_fields.len(),
+            auto_fields
+                .iter()
+                .map(|f| f.name.to_string())
+                .collect::<Vec<_>>()
+        ));
+        report.push_str(&format!(
+            "  Enum fields: {} ({:?})\n",
+            enum_fields.len(),
+            enum_fields
+                .iter()
+                .map(|f| f.name.to_string())
+                .collect::<Vec<_>>()
+        ));
+
         report
     }
 }
@@ -84,10 +108,11 @@ pub struct ManyQueryValidator;
 impl QueryBuilderValidator for ManyQueryValidator {
     fn validate(&self, input: &DeriveInput) -> Result<(), String> {
         let fields = analyze_struct_fields(input);
-        let non_key_unique_fields: Vec<_> = fields.iter()
+        let non_key_unique_fields: Vec<_> = fields
+            .iter()
             .filter(|f| !f.is_key && !f.is_unique)
             .collect();
-        
+
         if non_key_unique_fields.is_empty() {
             Err(format!(
                 "Struct {} has no non-key, non-unique fields available for many queries",
@@ -130,7 +155,7 @@ mod tests {
     #[test]
     fn test_many_query_validation() {
         let validator = ManyQueryValidator;
-        
+
         let valid_input: DeriveInput = parse_quote! {
             pub struct User {
                 #[key]
@@ -138,9 +163,9 @@ mod tests {
                 name: String,
             }
         };
-        
+
         assert!(validator.validate(&valid_input).is_ok());
-        
+
         let invalid_input: DeriveInput = parse_quote! {
             pub struct User {
                 #[key]
@@ -149,7 +174,7 @@ mod tests {
                 email: String,
             }
         };
-        
+
         assert!(validator.validate(&invalid_input).is_err());
     }
 }

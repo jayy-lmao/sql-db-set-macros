@@ -7,8 +7,10 @@ use proc_macro2::TokenStream;
 use quote::quote;
 use syn::DeriveInput;
 
-use crate::common::query_builder_gen::{QueryBuilderGenerator, QueryBuilderConfig, QueryType, QueryBuilderError};
-use crate::common::field_analysis::{FieldAnalysis, analyze_struct_fields, extract_field_names, extract_custom_enum_info};
+use crate::common::field_analysis::{extract_field_names, FieldAnalysis};
+use crate::common::query_builder_gen::{
+    QueryBuilderConfig, QueryBuilderError, QueryBuilderGenerator, QueryType,
+};
 use crate::common::sql_helpers;
 
 /// Modern implementation of the many query builder using traits
@@ -24,10 +26,18 @@ impl QueryBuilderGenerator for ModernManyQueryBuilder {
     }
 
     fn filter_fields(&self, fields: &[FieldAnalysis]) -> Vec<FieldAnalysis> {
-        fields.iter().filter(|field| !field.is_key && !field.is_unique).cloned().collect()
+        fields
+            .iter()
+            .filter(|field| !field.is_key && !field.is_unique)
+            .cloned()
+            .collect()
     }
 
-    fn generate_struct(&self, config: &QueryBuilderConfig, fields: &[FieldAnalysis]) -> Result<TokenStream, QueryBuilderError> {
+    fn generate_struct(
+        &self,
+        config: &QueryBuilderConfig,
+        fields: &[FieldAnalysis],
+    ) -> Result<TokenStream, QueryBuilderError> {
         let builder_name = self.builder_name(config);
         let field_declarations = fields.iter().map(|field| {
             let field_name = &field.name;
@@ -44,10 +54,14 @@ impl QueryBuilderGenerator for ModernManyQueryBuilder {
         })
     }
 
-    fn generate_methods(&self, config: &QueryBuilderConfig, fields: &[FieldAnalysis]) -> Result<TokenStream, QueryBuilderError> {
+    fn generate_methods(
+        &self,
+        config: &QueryBuilderConfig,
+        fields: &[FieldAnalysis],
+    ) -> Result<TokenStream, QueryBuilderError> {
         let builder_name = self.builder_name(config);
         let struct_name = quote::format_ident!("{}", config.struct_name);
-        
+
         // Generate setter methods
         let setter_methods = fields.iter().map(|field| {
             let field_name = &field.name;
@@ -100,21 +114,31 @@ impl QueryBuilderGenerator for ModernManyQueryBuilder {
         })
     }
 
-    fn generate_sql_query(&self, config: &QueryBuilderConfig, fields: &[FieldAnalysis]) -> Result<String, QueryBuilderError> {
+    fn generate_sql_query(
+        &self,
+        config: &QueryBuilderConfig,
+        fields: &[FieldAnalysis],
+    ) -> Result<String, QueryBuilderError> {
         // For now, use the existing pattern from the original many query builder
         // This would be enhanced with proper field analysis in a real implementation
         let field_names = extract_field_names(fields);
-        
+
         if fields.is_empty() {
             // If no filter fields, select all - this would need all struct fields
             Ok(format!("SELECT * FROM {}", config.table_name))
         } else {
             let where_clause = sql_helpers::generate_optional_where_clause(&field_names);
-            Ok(format!("SELECT * FROM {} {}", config.table_name, where_clause))
+            Ok(format!(
+                "SELECT * FROM {} {}",
+                config.table_name, where_clause
+            ))
         }
     }
 
-    fn generate_query_params(&self, fields: &[FieldAnalysis]) -> Result<TokenStream, QueryBuilderError> {
+    fn generate_query_params(
+        &self,
+        fields: &[FieldAnalysis],
+    ) -> Result<TokenStream, QueryBuilderError> {
         let params = fields.iter().map(|field| {
             let field_name = &field.name;
             if field.is_custom_enum {

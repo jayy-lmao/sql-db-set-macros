@@ -4,11 +4,10 @@
 //! customization of query generation behavior.
 
 use std::collections::HashMap;
-use proc_macro2::Ident;
 use syn::DeriveInput;
 
-use crate::common::query_builder_gen::QueryType;
 use crate::common::field_analysis::FieldAnalysis;
+use crate::common::query_builder_gen::QueryType;
 
 /// Configuration options for customizing query generation
 #[derive(Clone, Debug)]
@@ -124,8 +123,14 @@ impl DbSetConfigBuilder {
         self
     }
 
-    pub fn field_override<S: Into<String>>(mut self, field_name: S, override_config: FieldOverride) -> Self {
-        self.config.field_overrides.insert(field_name.into(), override_config);
+    pub fn field_override<S: Into<String>>(
+        mut self,
+        field_name: S,
+        override_config: FieldOverride,
+    ) -> Self {
+        self.config
+            .field_overrides
+            .insert(field_name.into(), override_config);
         self
     }
 
@@ -148,7 +153,7 @@ impl Default for DbSetConfigBuilder {
 /// Extract configuration from derive input attributes
 pub fn extract_config_from_attributes(input: &DeriveInput) -> DbSetConfig {
     let mut config = DbSetConfig::default();
-    
+
     // Look for #[dbset(...)] attributes
     for attr in &input.attrs {
         if let syn::Meta::List(meta) = &attr.meta {
@@ -184,28 +189,31 @@ pub fn extract_config_from_attributes(input: &DeriveInput) -> DbSetConfig {
             }
         }
     }
-    
+
     config
 }
 
 /// Apply configuration-based field filtering
 pub fn apply_config_field_filter<'a>(
-    fields: &'a [FieldAnalysis], 
-    config: &DbSetConfig, 
-    query_type: QueryType
+    fields: &'a [FieldAnalysis],
+    config: &DbSetConfig,
+    query_type: QueryType,
 ) -> Vec<&'a FieldAnalysis> {
-    fields.iter().filter(|field| {
-        let field_name = field.name.to_string();
-        
-        // Check if field is excluded from this query type
-        if let Some(override_config) = config.field_overrides.get(&field_name) {
-            if override_config.exclude_from.contains(&query_type) {
-                return false;
+    fields
+        .iter()
+        .filter(|field| {
+            let field_name = field.name.to_string();
+
+            // Check if field is excluded from this query type
+            if let Some(override_config) = config.field_overrides.get(&field_name) {
+                if override_config.exclude_from.contains(&query_type) {
+                    return false;
+                }
             }
-        }
-        
-        true
-    }).collect()
+
+            true
+        })
+        .collect()
 }
 
 #[cfg(test)]
@@ -245,7 +253,7 @@ mod tests {
     #[test]
     fn test_field_filtering() {
         use crate::common::field_analysis::analyze_struct_fields;
-        
+
         let input: DeriveInput = parse_quote! {
             pub struct User {
                 id: String,
@@ -256,21 +264,21 @@ mod tests {
 
         let fields = analyze_struct_fields(&input);
         let mut config = DbSetConfig::default();
-        
+
         // Exclude 'email' field from Many queries
         config.field_overrides.insert(
-            "email".to_string(), 
+            "email".to_string(),
             FieldOverride {
                 column_name: None,
                 sql_type: None,
                 exclude_from: vec![QueryType::Many],
                 validation_rules: vec![],
-            }
+            },
         );
 
         let filtered = apply_config_field_filter(&fields, &config, QueryType::Many);
         let field_names: Vec<_> = filtered.iter().map(|f| f.name.to_string()).collect();
-        
+
         assert!(!field_names.contains(&"email".to_string()));
         assert!(field_names.contains(&"name".to_string()));
     }

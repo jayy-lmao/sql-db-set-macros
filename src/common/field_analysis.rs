@@ -4,11 +4,9 @@
 //! for different query generation purposes.
 
 use proc_macro2::Ident;
-use syn::{Attribute, Type, DeriveInput};
+use syn::{Attribute, DeriveInput, Type};
 
-use crate::common::utils::{
-    get_all_fields, is_custom_enum_attr, get_inner_option_type,
-};
+use crate::common::utils::{get_all_fields, get_inner_option_type, is_custom_enum_attr};
 
 /// Represents a field with its metadata for query generation
 #[derive(Clone)]
@@ -69,7 +67,7 @@ impl FieldAnalysis {
 /// Analyze all fields in a struct and categorize them
 pub fn analyze_struct_fields(input: &DeriveInput) -> Vec<FieldAnalysis> {
     let all_fields = get_all_fields(input);
-    
+
     all_fields
         .iter()
         .map(|(name, field_type, attributes)| {
@@ -80,7 +78,10 @@ pub fn analyze_struct_fields(input: &DeriveInput) -> Vec<FieldAnalysis> {
 
 /// Get fields suitable for many queries (excluding keys and unique fields)
 pub fn get_many_query_fields(analyses: &[FieldAnalysis]) -> Vec<&FieldAnalysis> {
-    analyses.iter().filter(|f| f.is_many_query_field()).collect()
+    analyses
+        .iter()
+        .filter(|f| f.is_many_query_field())
+        .collect()
 }
 
 /// Get fields suitable for one queries (keys and unique fields)

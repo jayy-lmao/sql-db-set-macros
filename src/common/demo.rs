@@ -12,14 +12,14 @@
 //! See the tests folder for realistic consumer usage examples.
 
 use proc_macro2::TokenStream;
-use syn::DeriveInput;
 use quote::quote;
+use syn::DeriveInput;
 
 use crate::common::{
-    config::{DbSetConfigBuilder, extract_config_from_attributes},
     builder_factory::QueryBuilderFactory,
-    query_builder_gen::QueryType,
+    config::{extract_config_from_attributes, DbSetConfigBuilder},
     field_analysis::analyze_struct_fields,
+    query_builder_gen::QueryType,
 };
 
 /// Demonstrates the usage of the new advanced system
@@ -30,23 +30,27 @@ impl AdvancedQueryBuilderDemo {
     pub fn generate_with_config(input: &DeriveInput) -> TokenStream {
         // Extract configuration from attributes
         let base_config = extract_config_from_attributes(input);
-        
+
         // Enhance with additional settings
         let _enhanced_config = DbSetConfigBuilder::new()
-            .table_name(base_config.table_name.unwrap_or_else(|| input.ident.to_string().to_lowercase()))
+            .table_name(
+                base_config
+                    .table_name
+                    .unwrap_or_else(|| input.ident.to_string().to_lowercase()),
+            )
             .include_validation(true)
             .async_methods(true)
             .build();
 
         // Analyze the struct capabilities
         let analysis_report = QueryBuilderFactory::analyze_query_capabilities(input);
-        
+
         // Generate comment with analysis
         let analysis_comment = format!("/*\n{}\n*/", analysis_report);
-        
+
         // Generate the query builders
         let many_builder = QueryBuilderFactory::generate_builder(QueryType::Many, input);
-        
+
         quote! {
             #[doc = #analysis_comment]
             #many_builder
@@ -101,12 +105,16 @@ impl ECommerceQueryBuilders {
     /// (For illustration only; not typical usage)
     pub fn generate_product_builders(input: &DeriveInput) -> TokenStream {
         let fields = analyze_struct_fields(input);
-        
+
         // Look for e-commerce specific fields
         let has_price = fields.iter().any(|f| f.name.to_string().contains("price"));
-        let has_inventory = fields.iter().any(|f| f.name.to_string().contains("inventory") || f.name.to_string().contains("stock"));
-        let has_category = fields.iter().any(|f| f.name.to_string().contains("category"));
-        
+        let has_inventory = fields.iter().any(|f| {
+            f.name.to_string().contains("inventory") || f.name.to_string().contains("stock")
+        });
+        let has_category = fields
+            .iter()
+            .any(|f| f.name.to_string().contains("category"));
+
         let specialized_methods = if has_price && has_inventory && has_category {
             quote! {
                 impl ProductSpecializedQueries {
@@ -178,10 +186,10 @@ mod tests {
 
         let result = AdvancedQueryBuilderDemo::generate_with_config(&input);
         let result_str = result.to_string();
-        
+
         // Should contain analysis comment
         assert!(result_str.contains("Query capabilities"));
-        
+
         // Should contain query builder
         assert!(result_str.contains("QueryBuilder"));
     }
@@ -200,7 +208,7 @@ mod tests {
 
         let result = ECommerceQueryBuilders::generate_product_builders(&product_input);
         let result_str = result.to_string();
-        
+
         // Should contain specialized methods
         assert!(result_str.contains("find_by_price_range"));
         assert!(result_str.contains("find_low_stock"));

@@ -5,9 +5,12 @@
 use crate::common::constants::*;
 
 /// Generate a SELECT clause with optional type casting for enums
-pub fn generate_select_clause(fields: &[String], custom_enum_fields: &[(String, String)]) -> String {
+pub fn generate_select_clause(
+    fields: &[String],
+    custom_enum_fields: &[(String, String)],
+) -> String {
     let mut clauses = Vec::new();
-    
+
     for field in fields {
         if let Some((_, field_type)) = custom_enum_fields.iter().find(|(name, _)| name == field) {
             clauses.push(format!("{field} AS \"{field}:{field_type}\""));
@@ -15,7 +18,7 @@ pub fn generate_select_clause(fields: &[String], custom_enum_fields: &[(String, 
             clauses.push(field.clone());
         }
     }
-    
+
     clauses.join(", ")
 }
 
@@ -24,7 +27,7 @@ pub fn generate_optional_where_clause(fields: &[String]) -> String {
     if fields.is_empty() {
         return String::new();
     }
-    
+
     let conditions: Vec<String> = fields
         .iter()
         .enumerate()
@@ -33,7 +36,7 @@ pub fn generate_optional_where_clause(fields: &[String]) -> String {
             format!("({field} = ${param_num} OR ${param_num} IS NULL)")
         })
         .collect();
-    
+
     format!("{SQL_WHERE} {}", conditions.join(&format!(" {SQL_AND} ")))
 }
 
@@ -42,7 +45,7 @@ pub fn generate_required_where_clause(fields: &[String]) -> String {
     if fields.is_empty() {
         return String::new();
     }
-    
+
     let conditions: Vec<String> = fields
         .iter()
         .enumerate()
@@ -51,37 +54,39 @@ pub fn generate_required_where_clause(fields: &[String]) -> String {
             format!("{field} = ${param_num}")
         })
         .collect();
-    
+
     format!("{SQL_WHERE} {}", conditions.join(&format!(" {SQL_AND} ")))
 }
 
 /// Generate INSERT statement with RETURNING clause
 pub fn generate_insert_query(table_name: &str, fields: &[String]) -> String {
     let field_list = fields.join(", ");
-    let placeholders: Vec<String> = (1..=fields.len())
-        .map(|i| format!("${i}"))
-        .collect();
+    let placeholders: Vec<String> = (1..=fields.len()).map(|i| format!("${i}")).collect();
     let placeholder_list = placeholders.join(", ");
-    
+
     format!("{SQL_INSERT} {table_name} ({field_list}) {SQL_VALUES} ({placeholder_list}) {SQL_RETURNING} *")
 }
 
 /// Generate UPDATE statement with RETURNING clause
-pub fn generate_update_query(table_name: &str, data_fields: &[String], key_fields: &[String]) -> String {
+pub fn generate_update_query(
+    table_name: &str,
+    data_fields: &[String],
+    key_fields: &[String],
+) -> String {
     let set_clauses: Vec<String> = data_fields
         .iter()
         .enumerate()
         .map(|(i, field)| format!("{field} = ${}", i + 1))
         .collect();
     let set_clause = set_clauses.join(", ");
-    
+
     let where_conditions: Vec<String> = key_fields
         .iter()
         .enumerate()
         .map(|(i, field)| format!("{field} = ${}", data_fields.len() + i + 1))
         .collect();
     let where_clause = where_conditions.join(&format!(" {SQL_AND} "));
-    
+
     format!("{SQL_UPDATE} {table_name} {SQL_SET} {set_clause} {SQL_WHERE} {where_clause} {SQL_RETURNING} *")
 }
 
@@ -91,7 +96,7 @@ pub fn generate_delete_query(table_name: &str, fields: &[String]) -> String {
         .strip_prefix(&format!("{SQL_WHERE} "))
         .unwrap_or("")
         .to_string();
-    
+
     format!("{SQL_DELETE} {table_name} {SQL_WHERE} {where_clause}")
 }
 
@@ -119,13 +124,19 @@ mod tests {
     fn test_generate_optional_where_clause() {
         let fields = vec!["name".to_string(), "email".to_string()];
         let result = generate_optional_where_clause(&fields);
-        assert_eq!(result, "WHERE (name = $1 OR $1 IS NULL) AND (email = $2 OR $2 IS NULL)");
+        assert_eq!(
+            result,
+            "WHERE (name = $1 OR $1 IS NULL) AND (email = $2 OR $2 IS NULL)"
+        );
     }
 
     #[test]
     fn test_generate_insert_query() {
         let fields = vec!["name".to_string(), "email".to_string()];
         let result = generate_insert_query("users", &fields);
-        assert_eq!(result, "INSERT INTO users (name, email) VALUES ($1, $2) RETURNING *");
+        assert_eq!(
+            result,
+            "INSERT INTO users (name, email) VALUES ($1, $2) RETURNING *"
+        );
     }
 }
