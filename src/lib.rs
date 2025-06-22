@@ -17,7 +17,7 @@ use common::utils::{self};
 pub fn dbset_derive(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
 
-    let struct_name = &input.ident;
+    let _struct_name = &input.ident;
     let dbset_name = utils::get_dbset_name(&input);
 
     let many_query_builder_impl = many_query_builder::get_query_builder(&input);

@@ -7,19 +7,24 @@ use syn::{
     DeriveInput, Field, Fields, File, Ident, Meta, PathArguments, Type,
 };
 
+#[allow(dead_code)]
 pub enum Additional {
     IsEnum(String),
 }
 
+#[allow(dead_code)]
 pub fn derive_input_from_string(input: &str) -> Result<DeriveInput, syn::Error> {
     let token_stream = TokenStream::from_str(input)?;
     parse2::<DeriveInput>(token_stream)
 }
+
+#[allow(dead_code)]
 pub fn tokenstream_from_string(input: &str) -> Result<proc_macro2::TokenStream, String> {
     proc_macro2::TokenStream::from_str(input)
         .map_err(|err| syn::Error::new(proc_macro2::Span::call_site(), err).to_string())
 }
 
+#[allow(dead_code)]
 pub fn pretty_print_tokenstream(ts: proc_macro2::TokenStream) -> String {
     match parse2::<File>(ts.clone()) {
         Ok(file) => prettyplease::unparse(&file).to_string(),
@@ -96,12 +101,11 @@ pub fn get_table_name(input: &DeriveInput) -> String {
                 let _ = meta.parse_nested_meta(|meta| {
                     if meta.path.is_ident("table_name") {
                         // if let Lit::Str(lit_str) = meta {}
-                        if let ParseNestedMeta { input, .. } = meta {
-                            let instring = input.to_string();
-                            let parsed_inn_string_maybe = extract_inner_string(&instring);
-                            if let Some(parsed_inn_string) = parsed_inn_string_maybe {
-                                table_name = parsed_inn_string;
-                            }
+                        let ParseNestedMeta { input, .. } = meta;
+                        let instring = input.to_string();
+                        let parsed_inn_string_maybe = extract_inner_string(&instring);
+                        if let Some(parsed_inn_string) = parsed_inn_string_maybe {
+                            table_name = parsed_inn_string;
                         }
                     }
                     Ok(())
@@ -123,12 +127,11 @@ pub fn get_dbset_name(input: &DeriveInput) -> Ident {
                 let _ = meta.parse_nested_meta(|meta| {
                     if meta.path.is_ident("set_name") {
                         // if let Lit::Str(lit_str) = meta {}
-                        if let ParseNestedMeta { input, .. } = meta {
-                            let instring = input.to_string();
-                            let parsed_inn_string_maybe = extract_inner_string(&instring);
-                            if let Some(parsed_inn_string) = parsed_inn_string_maybe {
-                                set_name = parsed_inn_string;
-                            }
+                        let ParseNestedMeta { input, .. } = meta;
+                        let instring = input.to_string();
+                        let parsed_inn_string_maybe = extract_inner_string(&instring);
+                        if let Some(parsed_inn_string) = parsed_inn_string_maybe {
+                            set_name = parsed_inn_string;
                         }
                     }
                     Ok(())
@@ -274,6 +277,7 @@ pub fn get_query_fields_string(input: &DeriveInput) -> String {
     all_fields.join(", ")
 }
 
+#[allow(dead_code)]
 pub fn join_field_names(fields: &[(&Ident, &Type)], separator: &str) -> String {
     fields
         .iter()

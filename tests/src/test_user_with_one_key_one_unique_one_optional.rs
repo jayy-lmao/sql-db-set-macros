@@ -1,6 +1,5 @@
 use db_set_macros::DbSet;
-
-use crate::harness::get_db_pool;
+use sqlx::PgPool;
 
 #[derive(sqlx::Type, Debug, Clone)]
 #[sqlx(type_name = "user_status", rename_all = "snake_case")]
@@ -9,7 +8,7 @@ pub enum UserStatus {
     Unverified,
 }
 
-#[derive(DbSet,Debug, Clone)]
+#[derive(DbSet, Debug, Clone)]
 #[dbset(table_name = "users")]
 pub struct User {
     #[key]
@@ -22,14 +21,11 @@ pub struct User {
     status: UserStatus,
 }
 
-
-#[tokio::test]
-async fn test_fetch_user_by_id() -> Result<(), String> {
-    let pool = get_db_pool().await;
-
+#[sqlx::test(fixtures("users"))]
+async fn test_fetch_user_by_id(pool: PgPool) -> sqlx::Result<()> {
     let user = UserDbSet::one()
         .id_eq("user-1".to_string())
-        .fetch_one(pool)
+        .fetch_one(&pool)
         .await
         .expect("could not run query");
 
@@ -38,15 +34,13 @@ async fn test_fetch_user_by_id() -> Result<(), String> {
     Ok(())
 }
 
-#[tokio::test]
-async fn test_query_as_user() -> Result<(), String> {
-    let pool = get_db_pool().await;
-
+#[sqlx::test(fixtures("users"))]
+async fn test_query_as_user(pool: PgPool) -> sqlx::Result<()> {
     let user: User = sqlx::query_as!(
         User,
         "SELECT id, name, email, details, status as \"status:UserStatus\" FROM users LIMIT 1;"
     )
-    .fetch_one(pool)
+    .fetch_one(&pool)
     .await
     .expect("Could not fetch one");
 
@@ -54,13 +48,11 @@ async fn test_query_as_user() -> Result<(), String> {
     Ok(())
 }
 
-#[tokio::test]
-async fn test_fetch_users_by_name() -> Result<(), String> {
-    let pool = get_db_pool().await;
-
+#[sqlx::test(fixtures("users"))]
+async fn test_fetch_users_by_name(pool: PgPool) -> sqlx::Result<()> {
     let users = UserDbSet::many()
         .name_eq("bob".to_string())
-        .fetch_all(pool)
+        .fetch_all(&pool)
         .await
         .expect("Could not fetch users");
 
@@ -68,14 +60,12 @@ async fn test_fetch_users_by_name() -> Result<(), String> {
     Ok(())
 }
 
-#[tokio::test]
-async fn test_fetch_users_by_name_and_details() -> Result<(), String> {
-    let pool = get_db_pool().await;
-
+#[sqlx::test(fixtures("users"))]
+async fn test_fetch_users_by_name_and_details(pool: PgPool) -> sqlx::Result<()> {
     let users = UserDbSet::many()
         .name_eq("bob".to_string())
         .details_eq("the best bob".to_string())
-        .fetch_all(pool)
+        .fetch_all(&pool)
         .await
         .expect("Could not fetch users");
 
@@ -83,12 +73,10 @@ async fn test_fetch_users_by_name_and_details() -> Result<(), String> {
     Ok(())
 }
 
-#[tokio::test]
-async fn test_fetch_all_users() -> Result<(), String> {
-    let pool = get_db_pool().await;
-
+#[sqlx::test(fixtures("users"))]
+async fn test_fetch_all_users(pool: PgPool) -> sqlx::Result<()> {
     let users = UserDbSet::many()
-        .fetch_all(pool)
+        .fetch_all(&pool)
         .await
         .expect("Could not fetch users");
 
@@ -96,16 +84,14 @@ async fn test_fetch_all_users() -> Result<(), String> {
     Ok(())
 }
 
-#[tokio::test]
-async fn test_insert_users() -> Result<(), String> {
-    let pool = get_db_pool().await;
-
+#[sqlx::test(fixtures("users"))]
+async fn test_insert_users(pool: PgPool) -> sqlx::Result<()> {
     let inserted_user = UserDbSet::insert()
         .id("id-3".to_string())
         .email("steven@stevenson.com".to_string())
         .name("steven".to_string())
         .status(UserStatus::Verified)
-        .insert(pool)
+        .insert(&pool)
         .await
         .expect("Could not insert");
 
@@ -113,7 +99,7 @@ async fn test_insert_users() -> Result<(), String> {
         User,
         "SELECT id, name, email, details, status AS \"status:UserStatus\" FROM users WHERE id = 'id-3';"
     )
-    .fetch_one(pool)
+    .fetch_one(&pool)
     .await
     .expect("Could not fetch one");
 
@@ -122,15 +108,13 @@ async fn test_insert_users() -> Result<(), String> {
     Ok(())
 }
 
-#[tokio::test]
-async fn test_update_users() -> Result<(), String> {
-    let pool = get_db_pool().await;
-
+#[sqlx::test(fixtures("users"))]
+async fn test_update_users(pool: PgPool) -> sqlx::Result<()> {
     let mut user = sqlx::query_as!(
         User,
         "SELECT id, name, email, details, status AS \"status:UserStatus\" FROM users WHERE id = 'user-2';"
     )
-    .fetch_one(pool)
+    .fetch_one(&pool)
     .await
     .expect("Could not fetch one");
 
@@ -138,7 +122,7 @@ async fn test_update_users() -> Result<(), String> {
     user.email = String::from("mynewemail@bigpond.com.au");
     UserDbSet::update()
         .data(user.clone())
-        .update(pool)
+        .update(&pool)
         .await
         .expect("Could not update");
 
@@ -146,7 +130,7 @@ async fn test_update_users() -> Result<(), String> {
         User,
         "SELECT id, name, email, details, status AS \"status:UserStatus\" FROM users WHERE id = 'user-2';"
     )
-    .fetch_one(pool)
+    .fetch_one(&pool)
     .await
     .expect("Could not fetch one");
 
@@ -156,18 +140,16 @@ async fn test_update_users() -> Result<(), String> {
     Ok(())
 }
 
-#[tokio::test]
-async fn test_delete_users() -> Result<(), String> {
-    let pool = get_db_pool().await;
-
+#[sqlx::test(fixtures("users"))]
+async fn test_delete_users(pool: PgPool) -> sqlx::Result<()> {
     sqlx::query("INSERT INTO users (name, id, email, status) VALUES ('lana del ete', 'id-6', 'lana@bigpond.com.au', 'verified');")
-        .execute(pool)
+        .execute(&pool)
         .await
         .expect("Could not initialise db");
 
     UserDbSet::delete()
         .id_eq("id-6".to_string())
-        .delete(pool)
+        .delete(&pool)
         .await
         .expect("could not delete");
 
@@ -175,7 +157,7 @@ async fn test_delete_users() -> Result<(), String> {
         User,
         "SELECT id, name, email, details, status as \"status:UserStatus\" FROM users WHERE id = 'id-6';"
     )
-    .fetch_optional(pool)
+    .fetch_optional(&pool)
     .await
     .expect("Could not fetch one");
 
@@ -183,3 +165,5 @@ async fn test_delete_users() -> Result<(), String> {
 
     Ok(())
 }
+
+

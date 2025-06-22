@@ -25,14 +25,11 @@ jobs:
           tool: nextest
 
       - name: Run unit tests from root
-        run: cargo nextest run --release
+        run: make test-unit
 
   integration-tests:
     name: Integration tests
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./tests
     outputs:
       cache-hit: ${{ steps.cache.outputs.cache-hit }}
     env:
@@ -44,17 +41,12 @@ jobs:
       - name: Rust Cache
         uses: Swatinem/rust-cache@v2.7.5
             
-      - name: Build project
-        run: cargo build --release
-
       - uses: taiki-e/install-action@v2
         with:
           tool: nextest
 
-      - name: Run unit tests from root
-        run: cargo nextest run --release
+      - name: Install sqlx for makefile
+        run: make setup-db-migrations
 
       - name: Run integration tests in `tests`
-        run: 
-          TOKIO_WORKER_THREADS=1 cargo nextest run -j 1 --release
-
+        run: make test-integration

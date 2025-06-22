@@ -5,10 +5,8 @@ edition = "2021"
 
 [dependencies]
 tokio = { version = "1.29.1", features = ["full"] }
-testcontainers = { version ="0.15.0" }
-testcontainers-modules = { version = "0.3.5", features = ["postgres"] }
 db-set-macros = { path = '../'}
-sqlx = { version = "=0.8.3", default-features = false, features = ["runtime-tokio-rustls", "macros", "postgres", "chrono", "json", "uuid", "derive" ] }
+sqlx = { version = "=0.8.3", default-features = false, features = ["runtime-tokio-rustls", "macros", "postgres", "chrono", "json", "uuid", "derive", "migrate"] }
 serde = "1.0.214"
 serde_derive = "1.0.214"
 
