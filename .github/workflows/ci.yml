@@ -25,7 +25,7 @@ jobs:
           tool: nextest
 
       - name: Run unit tests from root
-        run: cargo nextest run --release
+        run: make test-unit
 
   integration-tests:
     name: Integration tests
@@ -51,10 +51,6 @@ jobs:
         with:
           tool: nextest
 
-      - name: Run unit tests from root
-        run: cargo nextest run --release
-
       - name: Run integration tests in `tests`
-        run: 
-          TOKIO_WORKER_THREADS=1 cargo nextest run -j 1 --release
+        run: make test-integration
 
