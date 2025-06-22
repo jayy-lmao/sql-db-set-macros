@@ -15,5 +15,5 @@ pub mod from_row;
 pub mod insert_query_builder;
 pub mod many_query_builder;
 pub mod one_query_builder;
-pub mod update_query_builder;
-pub mod query_builder_shared; // Add shared helpers module
+pub mod query_builder_shared;
+pub mod update_query_builder; // Add shared helpers module

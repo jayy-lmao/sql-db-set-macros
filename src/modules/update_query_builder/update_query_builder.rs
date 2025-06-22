@@ -2,18 +2,19 @@ use proc_macro2::Ident;
 use quote::quote;
 use syn::{Attribute, DeriveInput, Type};
 
-use crate::modules::query_builder_shared as shared;
 use crate::common::utils::{
     get_all_fields, get_auto_fields, get_dbset_name, get_key_fields, get_query_fields_string,
     get_struct_name, get_table_name, is_custom_enum_attr,
 };
+use crate::modules::query_builder_shared as shared;
 
 // Helper: get set fields for SQL
 fn get_set_fields<'a>(
     all_fields: &'a [(&'a Ident, &'a Type, &'a Vec<Attribute>)],
-    key_fields: &[(&'a Ident, &'a Type)]
+    key_fields: &[(&'a Ident, &'a Type)],
 ) -> Vec<&'a Ident> {
-    all_fields.iter()
+    all_fields
+        .iter()
         .filter(|(ident, _, _)| !key_fields.iter().any(|(kf_ident, _)| kf_ident == ident))
         .map(|(ident, _, _)| *ident)
         .collect()
@@ -24,7 +25,7 @@ fn build_update_query(
     table_name: &str,
     set_fields: &[&Ident],
     key_fields: &[(&Ident, &Type)],
-    all_fields_str: &str
+    all_fields_str: &str,
 ) -> String {
     let where_size = key_fields.len();
     let query_builder_where_fields = key_fields
@@ -46,16 +47,19 @@ fn build_update_query(
 
 // Helper: build query args
 fn build_update_query_args(
-    all_fields: &[(&Ident, &Type, &Vec<Attribute>)]
+    all_fields: &[(&Ident, &Type, &Vec<Attribute>)],
 ) -> Vec<proc_macro2::TokenStream> {
-    all_fields.iter().map(|(name, ty, attrs)| {
-        let is_custom_enum = attrs.iter().any(is_custom_enum_attr);
-        if is_custom_enum {
-            quote! { self.updatable.#name as #ty, }
-        } else {
-            quote! { self.updatable.#name, }
-        }
-    }).collect()
+    all_fields
+        .iter()
+        .map(|(name, ty, attrs)| {
+            let is_custom_enum = attrs.iter().any(is_custom_enum_attr);
+            if is_custom_enum {
+                quote! { self.updatable.#name as #ty, }
+            } else {
+                quote! { self.updatable.#name, }
+            }
+        })
+        .collect()
 }
 
 /// Get the update builder struct name

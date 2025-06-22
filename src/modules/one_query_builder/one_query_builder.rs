@@ -3,17 +3,19 @@ use proc_macro2::Ident;
 use quote::quote;
 use syn::DeriveInput;
 
-use crate::modules::query_builder_shared as shared;
 use crate::common::utils::{
     get_all_fields, get_dbset_name, get_inner_option_type, get_key_fields, get_query_fields_string,
     get_struct_name, get_table_name, get_unique_fields,
 };
+use crate::modules::query_builder_shared as shared;
 pub fn get_one_builder_struct_name(input: &DeriveInput) -> Ident {
     let dbset_name = get_dbset_name(input);
     quote::format_ident!("{}OneQueryBuilder", dbset_name)
 }
 
-fn builder_struct_generics<'a>(all_required_insert_fields: &[(&'a Ident, &'a syn::Type)]) -> Vec<proc_macro2::TokenStream> {
+fn builder_struct_generics<'a>(
+    all_required_insert_fields: &[(&'a Ident, &'a syn::Type)],
+) -> Vec<proc_macro2::TokenStream> {
     all_required_insert_fields
         .iter()
         .map(|(field_name, _)| {
@@ -34,7 +36,9 @@ fn builder_struct_generics<'a>(all_required_insert_fields: &[(&'a Ident, &'a syn
         .collect()
 }
 
-fn struct_fields<'a>(all_query_one_fields: &[(&'a Ident, &'a syn::Type)]) -> Vec<proc_macro2::TokenStream> {
+fn struct_fields<'a>(
+    all_query_one_fields: &[(&'a Ident, &'a syn::Type)],
+) -> Vec<proc_macro2::TokenStream> {
     all_query_one_fields
         .iter()
         .map(|(name, ty)| {
@@ -51,17 +55,22 @@ fn struct_fields<'a>(all_query_one_fields: &[(&'a Ident, &'a syn::Type)]) -> Vec
         .collect()
 }
 
-fn phantom_struct_fields<'a>(all_required_insert_fields: &[(&'a Ident, &'a syn::Type)]) -> Vec<proc_macro2::TokenStream> {
-    all_required_insert_fields.iter().map(|(name, _)| {
-        let gen_name_pascal = quote::format_ident!(
-            "{}",
-            name.to_string()
-                .from_case(Case::Snake)
-                .to_case(Case::Pascal)
-        );
-        let ph_name = quote::format_ident!("_{}", name);
-        quote! { #ph_name: std::marker::PhantomData::<#gen_name_pascal>, }
-    }).collect()
+fn phantom_struct_fields<'a>(
+    all_required_insert_fields: &[(&'a Ident, &'a syn::Type)],
+) -> Vec<proc_macro2::TokenStream> {
+    all_required_insert_fields
+        .iter()
+        .map(|(name, _)| {
+            let gen_name_pascal = quote::format_ident!(
+                "{}",
+                name.to_string()
+                    .from_case(Case::Snake)
+                    .to_case(Case::Pascal)
+            );
+            let ph_name = quote::format_ident!("_{}", name);
+            quote! { #ph_name: std::marker::PhantomData::<#gen_name_pascal>, }
+        })
+        .collect()
 }
 
 fn builder_methods<'a>(
@@ -162,9 +171,15 @@ pub fn get_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream {
         .iter()
         .filter(|(_, ty)| get_inner_option_type(ty).is_none())
         .collect();
-    let all_required_insert_fields: Vec<(&Ident, &syn::Type)> = non_nullable_fields.iter().map(|(a, b)| (*a, *b)).collect();
-    let all_query_one_fields: Vec<(&Ident, &syn::Type)> = key_fields.iter().chain(unique_fields.iter()).map(|(a, b)| (*a, *b)).collect();
-    let unique_fields_ref: Vec<(&Ident, &syn::Type)> = unique_fields.iter().map(|(a, b)| (*a, *b)).collect();
+    let all_required_insert_fields: Vec<(&Ident, &syn::Type)> =
+        non_nullable_fields.iter().map(|(a, b)| (*a, *b)).collect();
+    let all_query_one_fields: Vec<(&Ident, &syn::Type)> = key_fields
+        .iter()
+        .chain(unique_fields.iter())
+        .map(|(a, b)| (*a, *b))
+        .collect();
+    let unique_fields_ref: Vec<(&Ident, &syn::Type)> =
+        unique_fields.iter().map(|(a, b)| (*a, *b)).collect();
 
     let builder_struct_generics = builder_struct_generics(&all_required_insert_fields);
     let struct_fields = struct_fields(&all_query_one_fields);
@@ -177,8 +192,16 @@ pub fn get_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream {
     };
 
     // Create new impl
-    let initial_generics = all_required_insert_fields.iter().map(|_| quote! { NotSet, }).chain(vec![quote! {NotSet}]);
-    let initial_struct_fields = all_query_one_fields.iter().map(|(name, _)| quote! { #name: None, }).chain(vec![quote! { _unique_fields: std::marker::PhantomData::<NotSet>, }]);
+    let initial_generics = all_required_insert_fields
+        .iter()
+        .map(|_| quote! { NotSet, })
+        .chain(vec![quote! {NotSet}]);
+    let initial_struct_fields = all_query_one_fields
+        .iter()
+        .map(|(name, _)| quote! { #name: None, })
+        .chain(vec![
+            quote! { _unique_fields: std::marker::PhantomData::<NotSet>, },
+        ]);
     let initial_phantom_struct_fields = all_required_insert_fields.iter().map(|(name, _)| {
         let ph_name = quote::format_ident!("_{}", name);
         quote! { #ph_name: std::marker::PhantomData::<NotSet>, }
@@ -201,18 +224,34 @@ pub fn get_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream {
 
     // Create complete impl
 
-    let key_fetch_one_method_generics = all_required_insert_fields.iter().map(|_| quote! { Set, }).chain(vec![quote! { NotSet }]);
-    let unique_fetch_one_method_generics = all_required_insert_fields.iter().map(|_| quote! { NotSet, }).chain(vec![quote! { Set }]);
+    let key_fetch_one_method_generics = all_required_insert_fields
+        .iter()
+        .map(|_| quote! { Set, })
+        .chain(vec![quote! { NotSet }]);
+    let unique_fetch_one_method_generics = all_required_insert_fields
+        .iter()
+        .map(|_| quote! { NotSet, })
+        .chain(vec![quote! { Set }]);
     let all_fields_str = get_query_fields_string(input);
-    let key_query_builder_fields_where_clause = key_fields.iter().enumerate().map(|(index, (field_name, _))| format!("{} = ${}", field_name, index + 1,)).collect::<Vec<_>>().join(" AND ");
-    let unique_query_builder_fields_where_clause = unique_fields.iter().enumerate().map(|(index, (field_name, _))| {
-        format!(
-            "({} = ${} OR ${} is null)",
-            field_name,
-            index + 1,
-            index + 1,
-        )
-    }).collect::<Vec<_>>().join(" AND ");
+    let key_query_builder_fields_where_clause = key_fields
+        .iter()
+        .enumerate()
+        .map(|(index, (field_name, _))| format!("{} = ${}", field_name, index + 1,))
+        .collect::<Vec<_>>()
+        .join(" AND ");
+    let unique_query_builder_fields_where_clause = unique_fields
+        .iter()
+        .enumerate()
+        .map(|(index, (field_name, _))| {
+            format!(
+                "({} = ${} OR ${} is null)",
+                field_name,
+                index + 1,
+                index + 1,
+            )
+        })
+        .collect::<Vec<_>>()
+        .join(" AND ");
     let unique_query_args = unique_fields.clone().into_iter().map(|(name, _)| {
         quote! { self.#name, }
     });

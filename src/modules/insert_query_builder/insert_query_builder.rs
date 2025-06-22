@@ -2,11 +2,11 @@ use proc_macro2::Ident;
 use quote::quote;
 use syn::{Attribute, DeriveInput, Type};
 
-use crate::modules::query_builder_shared as shared;
 use crate::common::utils::{
     get_all_fields, get_auto_fields, get_dbset_name, get_inner_option_type,
     get_query_fields_string, get_struct_name, get_table_name, is_custom_enum_attr,
 };
+use crate::modules::query_builder_shared as shared;
 
 pub fn get_insert_builder_struct_name(input: &DeriveInput) -> Ident {
     let dbset_name = get_dbset_name(input);
@@ -22,16 +22,24 @@ pub fn get_insert_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream
     let all_fields_str = get_query_fields_string(input);
 
     let insert_fields = shared::filter_non_auto_fields(&all_fields, &auto_fields);
-    let required_fields = shared::get_required_fields(&all_fields, &auto_fields, &get_inner_option_type);
+    let required_fields =
+        shared::get_required_fields(&all_fields, &auto_fields, &get_inner_option_type);
 
     let builder_struct_generics = shared::build_builder_struct_generics(&required_fields);
     let struct_fields = shared::build_struct_fields(&insert_fields, &get_inner_option_type);
     let phantom_struct_fields = shared::build_phantom_struct_fields(&required_fields);
     let initial_generics = shared::build_initial_generics(&required_fields);
     let initial_struct_fields = shared::build_initial_struct_fields(&insert_fields);
-    let initial_phantom_struct_fields = shared::build_initial_phantom_struct_fields(&required_fields);
-    let builder_methods = shared::build_builder_methods(&insert_fields, &required_fields, &builder_struct_name, &get_inner_option_type);
-    let (query, query_args) = shared::build_insert_query_and_args(&table_name, &insert_fields, &all_fields_str);
+    let initial_phantom_struct_fields =
+        shared::build_initial_phantom_struct_fields(&required_fields);
+    let builder_methods = shared::build_builder_methods(
+        &insert_fields,
+        &required_fields,
+        &builder_struct_name,
+        &get_inner_option_type,
+    );
+    let (query, query_args) =
+        shared::build_insert_query_and_args(&table_name, &insert_fields, &all_fields_str);
     let insert_method_generics = required_fields.iter().map(|_| quote! { Set, });
 
     let builder_struct = quote! {
