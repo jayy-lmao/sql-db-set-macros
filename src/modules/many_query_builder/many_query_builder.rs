@@ -2,6 +2,7 @@ use proc_macro2::Ident;
 use quote::quote;
 use syn::{Attribute, DeriveInput, Type};
 
+use crate::modules::query_builder_shared as shared;
 use crate::{
     common::utils::{
         get_all_fields, get_key_fields, get_query_fields_string, get_unique_fields,

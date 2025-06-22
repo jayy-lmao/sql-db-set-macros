@@ -138,3 +138,24 @@ pub fn build_builder_methods(
         }
     }).collect()
 }
+
+// Add build_insert_query_and_args as a shared helper for insert query generation
+
+pub fn build_insert_query_and_args(
+    table_name: &str,
+    insert_fields: &[&(&proc_macro2::Ident, &syn::Type, &Vec<syn::Attribute>)],
+    all_fields_str: &str
+) -> (String, Vec<proc_macro2::TokenStream>) {
+    let all_insert_fields_str = insert_fields.iter().map(|(name, _, _)| name.to_string()).collect::<Vec<_>>().join(", ");
+    let all_params = insert_fields.iter().enumerate().map(|(index, _)| format!("${}", index + 1)).collect::<Vec<_>>().join(", ");
+    let query = format!("INSERT INTO {table_name}({all_insert_fields_str}) VALUES ({all_params}) RETURNING {all_fields_str};");
+    let query_args = insert_fields.iter().map(|(name, ty, attrs)| {
+        let is_custom_enum = attrs.iter().any(crate::common::utils::is_custom_enum_attr);
+        if is_custom_enum {
+            quote! { self.#name as Option<#ty>, }
+        } else {
+            quote! { self.#name, }
+        }
+    }).collect();
+    (query, query_args)
+}

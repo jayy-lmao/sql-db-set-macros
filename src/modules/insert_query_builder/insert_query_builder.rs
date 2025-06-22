@@ -8,26 +8,6 @@ use crate::common::utils::{
     get_query_fields_string, get_struct_name, get_table_name, is_custom_enum_attr,
 };
 
-// Helper: build query and args
-fn build_insert_query_and_args(
-    table_name: &str,
-    insert_fields: &[&(&Ident, &Type, &Vec<Attribute>)],
-    all_fields_str: &str
-) -> (String, Vec<proc_macro2::TokenStream>) {
-    let all_insert_fields_str = insert_fields.iter().map(|(name, _, _)| name.to_string()).collect::<Vec<_>>().join(", ");
-    let all_params = insert_fields.iter().enumerate().map(|(index, _)| format!("${}", index + 1)).collect::<Vec<_>>().join(", ");
-    let query = format!("INSERT INTO {table_name}({all_insert_fields_str}) VALUES ({all_params}) RETURNING {all_fields_str};");
-    let query_args = insert_fields.iter().map(|(name, ty, attrs)| {
-        let is_custom_enum = attrs.iter().any(is_custom_enum_attr);
-        if is_custom_enum {
-            quote! { self.#name as Option<#ty>, }
-        } else {
-            quote! { self.#name, }
-        }
-    }).collect();
-    (query, query_args)
-}
-
 pub fn get_insert_builder_struct_name(input: &DeriveInput) -> Ident {
     let dbset_name = get_dbset_name(input);
     quote::format_ident!("{}InsertBuilder", dbset_name)
@@ -51,7 +31,7 @@ pub fn get_insert_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream
     let initial_struct_fields = shared::build_initial_struct_fields(&insert_fields);
     let initial_phantom_struct_fields = shared::build_initial_phantom_struct_fields(&required_fields);
     let builder_methods = shared::build_builder_methods(&insert_fields, &required_fields, &builder_struct_name, &get_inner_option_type);
-    let (query, query_args) = build_insert_query_and_args(&table_name, &insert_fields, &all_fields_str);
+    let (query, query_args) = shared::build_insert_query_and_args(&table_name, &insert_fields, &all_fields_str);
     let insert_method_generics = required_fields.iter().map(|_| quote! { Set, });
 
     let builder_struct = quote! {

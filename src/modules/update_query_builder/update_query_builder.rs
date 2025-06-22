@@ -2,22 +2,13 @@ use proc_macro2::Ident;
 use quote::quote;
 use syn::{Attribute, DeriveInput, Type};
 
+use crate::modules::query_builder_shared as shared;
 use crate::common::utils::{
     get_all_fields, get_auto_fields, get_dbset_name, get_key_fields, get_query_fields_string,
     get_struct_name, get_table_name, is_custom_enum_attr,
 };
 
-/// Helper: filter out auto fields
-fn filter_updatable_fields<'a>(
-    all_fields: &'a [(&Ident, &Type, &Vec<Attribute>)],
-    auto_fields: &[(&Ident, &Type, &Vec<Attribute>)]
-) -> Vec<&'a (&'a Ident, &'a Type, &'a Vec<Attribute>)> {
-    all_fields.iter().filter(|(field, _, _)| {
-        !auto_fields.iter().any(|(auto_field, _, _)| auto_field == field)
-    }).collect()
-}
-
-/// Helper: get set fields for SQL
+// Helper: get set fields for SQL
 fn get_set_fields<'a>(
     all_fields: &'a [(&'a Ident, &'a Type, &'a Vec<Attribute>)],
     key_fields: &[(&'a Ident, &'a Type)]
@@ -28,7 +19,7 @@ fn get_set_fields<'a>(
         .collect()
 }
 
-/// Helper: build SQL update query string
+// Helper: build SQL update query string
 fn build_update_query(
     table_name: &str,
     set_fields: &[&Ident],
@@ -53,7 +44,7 @@ fn build_update_query(
     )
 }
 
-/// Helper: build query args
+// Helper: build query args
 fn build_update_query_args(
     all_fields: &[(&Ident, &Type, &Vec<Attribute>)]
 ) -> Vec<proc_macro2::TokenStream> {
@@ -83,8 +74,8 @@ pub fn get_update_query_builder(input: &DeriveInput) -> proc_macro2::TokenStream
     let all_fields_str = get_query_fields_string(input);
     let key_fields = get_key_fields(input);
 
-    // Modular: filter updatable fields and set fields
-    let updatable_fields = filter_updatable_fields(&all_fields, &auto_fields);
+    // Use shared helper for updatable fields
+    let updatable_fields = shared::filter_non_auto_fields(&all_fields, &auto_fields);
     let set_fields = get_set_fields(&all_fields, &key_fields);
 
     // Modular: build SQL and args
